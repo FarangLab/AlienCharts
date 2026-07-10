@@ -1,0 +1,95 @@
+/*
+ * AlienCharts styles — compiled with Tailwind v4 into a self-contained
+ * stylesheet (no global preflight, so it won't touch the host page).
+ *
+ * The theme tokens are scoped to `.aliencharts-root` (the ChartGrid wrapper),
+ * so the package renders identically with zero Tailwind or theme setup in the
+ * consuming app, and never overrides the host's own CSS variables.
+ */
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "./**/*.{js,jsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Map the semantic utilities used in the components to runtime CSS variables.
+   `inline` means the values are substituted directly into the utilities and no
+   `--color-*` variables are emitted, so there is nothing to collide with a
+   host app that defines its own shadcn-style tokens. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/* Scoped element reset — the parts of Tailwind's preflight the components rely
+   on (box model, border defaults, native button/input chrome), limited to
+   `.aliencharts-root` so the host page's own elements are left untouched.
+   Lives in @layer base so utility classes still win over it. */
+@layer base {
+  .aliencharts-root,
+  .aliencharts-root *,
+  .aliencharts-root *::before,
+  .aliencharts-root *::after {
+    box-sizing: border-box;
+    border: 0 solid;
+  }
+
+  .aliencharts-root button,
+  .aliencharts-root input {
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    background: transparent;
+  }
+
+  .aliencharts-root button {
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .aliencharts-root button:disabled {
+    cursor: default;
+  }
+
+  .aliencharts-root svg {
+    display: block;
+  }
+}
+
+.aliencharts-root {
+  --radius: 0.5rem;
+  --background: hsl(338.2 0% 100%);
+  --foreground: hsl(340 0% 8.6%);
+  --popover: hsl(338.2 0% 100%);
+  --popover-foreground: hsl(340 0% 8.6%);
+  --primary: hsl(202.7 83.3% 60.2%);
+  --muted-foreground: hsl(340 0% 38.6%);
+  --accent: hsl(334.3 0% 81.9%);
+  --accent-foreground: hsl(340 0% 28.6%);
+  --border: hsl(340 0% 38.6%);
+}
+
+.dark .aliencharts-root,
+.aliencharts-root.dark {
+  --background: hsl(338.2 10% 10%);
+  --foreground: hsl(340 10% 90%);
+  --popover: hsl(338.2 10% 10%);
+  --popover-foreground: hsl(340 10% 90%);
+  --primary: hsl(202.7 93.3% 39.8%);
+  --muted-foreground: hsl(340 10% 61.4%);
+  --accent: hsl(334.3 10% 18.1%);
+  --accent-foreground: hsl(340 10% 71.4%);
+  --border: hsl(340 10% 61.4%);
+}

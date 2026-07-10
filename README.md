@@ -25,11 +25,20 @@ npm install aliencharts
 
 `react` and `react-dom` (v18+) are peer dependencies, so make sure they are installed in your app.
 
+AlienCharts ships its own self-contained stylesheet, import it once in your app:
+
+```js
+import "aliencharts/styles.css";
+```
+
+Dark mode follows a `.dark` class on any ancestor element (e.g. `<html class="dark">`).
+
 ## Quick start
 
 Build an array of `charts`, where each chart has an `id`, a `title`, and one or more `series` created with `createSeries`. Pass them to `<ChartGrid>`:
 
 ```jsx
+import "aliencharts/styles.css";
 import { ChartGrid, createSeries } from "aliencharts";
 
 const charts = [

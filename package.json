@@ -28,14 +28,17 @@
     ".": {
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./styles.css": "./dist/aliencharts.css"
   },
   "files": [
     "dist"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
-    "build": "node build.js",
+    "build": "node build.js && tailwindcss -i src/styles.css -o dist/aliencharts.css --minify",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
@@ -46,6 +49,8 @@
     "@phosphor-icons/react": "^2.1.10"
   },
   "devDependencies": {
-    "esbuild": "^0.28.1"
+    "@tailwindcss/cli": "^4.3.2",
+    "esbuild": "^0.28.1",
+    "tailwindcss": "^4.3.2"
   }
 }

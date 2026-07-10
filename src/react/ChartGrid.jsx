@@ -4053,7 +4053,7 @@ export function ChartGrid({
   return (
     <div
       ref={containerRef}
-      className={`relative h-full overflow-y-auto ${className}`}
+      className={`aliencharts-root relative h-full overflow-y-auto ${className}`}
       style={{
         cursor:
           rectangleZoomChartId || activeDrawingTool ? "crosshair" : undefined,
