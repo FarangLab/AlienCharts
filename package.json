@@ -1,0 +1,51 @@
+{
+  "name": "aliencharts",
+  "version": "0.1.0",
+  "description": "WebGL chart renderer for multi-metric dashboards, built for ease of use and high performance.",
+  "type": "module",
+  "license": "MIT",
+  "author": "FarangLab",
+  "keywords": [
+    "charts",
+    "chart-grid",
+    "webgl",
+    "react",
+    "dashboard",
+    "visualization",
+    "data-visualization"
+  ],
+  "homepage": "https://github.com/FarangLab/aliencharts#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FarangLab/aliencharts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/FarangLab/aliencharts/issues"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node build.js",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  }
+}
