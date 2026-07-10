@@ -1,6 +1,6 @@
 {
   "name": "aliencharts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "WebGL chart renderer for multi-metric dashboards, built for ease of use and high performance.",
   "type": "module",
   "license": "MIT",
