@@ -64,6 +64,43 @@ export default function Dashboard() {
 
 For a fuller example, including live appending and theming — see [`examples/DemoPage.jsx`](./examples/DemoPage.jsx).
 
+### Drawings
+
+Drawings are controlled by your app. Keep the drawing array and active tool in state, then pass that state into `ChartGrid`:
+
+```jsx
+import { useCallback, useState } from "react";
+import { ChartGrid } from "aliencharts";
+
+export default function Dashboard({ charts }) {
+  const [drawings, setDrawings] = useState([]);
+  const [activeDrawingTool, setActiveDrawingTool] = useState(null);
+  const [selectedDrawingId, setSelectedDrawingId] = useState(null);
+
+  const createDrawingId = useCallback(
+    ({ chartId, type }) => `${chartId}:${type}:${crypto.randomUUID()}`,
+    [],
+  );
+
+  return (
+    <ChartGrid
+      charts={charts}
+      drawings={drawings}
+      onDrawingsChange={setDrawings}
+      activeDrawingTool={activeDrawingTool}
+      onActiveDrawingToolChange={setActiveDrawingTool}
+      selectedDrawingId={selectedDrawingId}
+      onSelectedDrawingIdChange={setSelectedDrawingId}
+      createDrawingId={createDrawingId}
+    />
+  );
+}
+```
+
+Supported drawing tools are `"trendline"`, `"hline"`, `"vline"`, and `"pin"`. Since drawings live outside the component, you can persist them however you want, such as local storage, a database, or app state.
+
+Set `disableDrawings` when you want a read-only chart toolbar without drawing or moving-average tools.
+
 ## API
 
 ### `createSeries(options)`
@@ -97,6 +134,15 @@ Renders a responsive grid of charts. Commonly used props:
 | `xAxisLabel` | `string` | `"STEP"` | Label shown on the x-axis. |
 | `backgroundColor` | `string` | — | Chart background color. |
 | `antialiasLines` | `boolean` | `false` | Enable line antialiasing. |
+| `drawings` | `Drawing[]` | `[]` | Controlled drawing objects. |
+| `onDrawingsChange` | `(drawings) => void` | — | Called when drawings are created, edited, deleted, or styled. |
+| `activeDrawingTool` | `"trendline" \| "hline" \| "vline" \| "pin" \| null` | `null` | Controlled active drawing tool. |
+| `onActiveDrawingToolChange` | `(tool) => void` | — | Called when the toolbar or hotkeys change the active drawing tool. |
+| `selectedDrawingId` | `string \| null` | `null` | Controlled selected drawing id. |
+| `onSelectedDrawingIdChange` | `(id) => void` | — | Called when a drawing is selected or deselected. |
+| `createDrawingId` | `({ chartId, type }) => string` | — | Optional id factory for new drawings. |
+| `disableDrawings` | `boolean` | `false` | Hide and disable drawing and moving-average tools. |
+| `onChartContextMenu` | `({ chart, event, point }) => void` | — | Called on chart right-click. Use it to render your own context menu. |
 
 ## License
 
