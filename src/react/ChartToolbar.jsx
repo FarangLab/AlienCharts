@@ -58,6 +58,7 @@ export function ChartToolbar({
   onDrawingToolToggle,
   hasDrawings = false,
   onClearDrawingsRequest,
+  disableDrawings = false,
 }) {
   return (
     <div className="absolute left-2 top-12 z-30 flex flex-col gap-0.5 rounded-sm bg-background/80 p-0 pr-3 text-foreground shadow-sm backdrop-blur">
@@ -83,7 +84,7 @@ export function ChartToolbar({
       >
         <MagnifyingGlassPlusIcon size={16} weight="bold" />
       </ToolbarAction>
-      {hasDrawings ? (
+      {!disableDrawings && hasDrawings ? (
         <ToolbarAction
           title="Clear drawings"
           className="text-orange-500 dark:text-orange-300 dark:hover:text-orange-300"
@@ -92,47 +93,53 @@ export function ChartToolbar({
           <BroomIcon size={16} weight="bold" />
         </ToolbarAction>
       ) : null}
-      <div className="my-1 h-px w-full" />
-      <ToolbarAction
-        title="Draw trendline"
-        hotkey="T"
-        onClick={() => onDrawingToolToggle?.("trendline")}
-        active={activeDrawingTool === "trendline"}
-      >
-        <MinusIcon className="-rotate-45" size={16} weight="bold" />
-      </ToolbarAction>
-      <ToolbarAction
-        title="Draw horizontal line"
-        hotkey="H"
-        onClick={() => onDrawingToolToggle?.("hline")}
-        active={activeDrawingTool === "hline"}
-      >
-        <MinusIcon size={16} weight="bold" />
-      </ToolbarAction>
-      <ToolbarAction
-        title="Draw vertical line"
-        hotkey="V"
-        onClick={() => onDrawingToolToggle?.("vline")}
-        active={activeDrawingTool === "vline"}
-      >
-        <MinusIcon className="rotate-90" size={16} weight="bold" />
-      </ToolbarAction>
-      <ToolbarAction
-        title="Place pin"
-        hotkey="P"
-        onClick={() => onDrawingToolToggle?.("pin")}
-        active={activeDrawingTool === "pin"}
-      >
-        <MapPinIcon size={16} weight="bold" />
-      </ToolbarAction>
-      <ToolbarAction
-        title="Toggle moving average"
-        hotkey="M"
-        onClick={onMovingAverageToggle}
-        active={movingAverageActive}
-      >
-        <WaveSineIcon size={16} weight="bold" />
-      </ToolbarAction>
+      {!disableDrawings ? (
+        <>
+          <div className="my-1 h-px w-full" />
+          <ToolbarAction
+            title="Draw trendline"
+            hotkey="T"
+            onClick={() => onDrawingToolToggle?.("trendline")}
+            active={activeDrawingTool === "trendline"}
+          >
+            <MinusIcon className="-rotate-45" size={16} weight="bold" />
+          </ToolbarAction>
+          <ToolbarAction
+            title="Draw horizontal line"
+            hotkey="H"
+            onClick={() => onDrawingToolToggle?.("hline")}
+            active={activeDrawingTool === "hline"}
+          >
+            <MinusIcon size={16} weight="bold" />
+          </ToolbarAction>
+          <ToolbarAction
+            title="Draw vertical line"
+            hotkey="V"
+            onClick={() => onDrawingToolToggle?.("vline")}
+            active={activeDrawingTool === "vline"}
+          >
+            <MinusIcon className="rotate-90" size={16} weight="bold" />
+          </ToolbarAction>
+          <ToolbarAction
+            title="Place pin"
+            hotkey="P"
+            onClick={() => onDrawingToolToggle?.("pin")}
+            active={activeDrawingTool === "pin"}
+          >
+            <MapPinIcon size={16} weight="bold" />
+          </ToolbarAction>
+        </>
+      ) : null}
+      {!disableDrawings ? (
+        <ToolbarAction
+          title="Toggle moving average"
+          hotkey="M"
+          onClick={onMovingAverageToggle}
+          active={movingAverageActive}
+        >
+          <WaveSineIcon size={16} weight="bold" />
+        </ToolbarAction>
+      ) : null}
     </div>
   );
 }

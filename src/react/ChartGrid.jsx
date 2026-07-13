@@ -756,6 +756,11 @@ const getYRange = (chart, xMin, xMax, width) => {
   if (!Number.isFinite(minY) || !Number.isFinite(maxY)) {
     return { minY: 0, maxY: 1, renderedPoints, bucketSize };
   }
+  const fixedMinY = Number(chart.yRange?.min);
+  const fixedMaxY = Number(chart.yRange?.max);
+  if (Number.isFinite(fixedMinY) && Number.isFinite(fixedMaxY) && fixedMinY < fixedMaxY) {
+    return { minY: fixedMinY, maxY: fixedMaxY, renderedPoints, bucketSize };
+  }
   if (minY === maxY) {
     minY -= 1;
     maxY += 1;
@@ -1049,9 +1054,12 @@ function ChartCell({
   onDrawingToolToggle,
   hasDrawings = false,
   onClearDrawingsRequest,
+  disableDrawings = false,
   height = CHART_HEIGHT,
   isFullscreen = false,
   backgroundColor = DEFAULT_CHART_BACKGROUND,
+  formatXTick = formatCompactNumber,
+  formatYValue = formatNumber,
 }) {
   const headerBackground = withAlpha(backgroundColor, 0.82);
   const controlBackground = withAlpha(backgroundColor, 0.78);
@@ -1128,6 +1136,7 @@ function ChartCell({
           onDrawingToolToggle={onDrawingToolToggle}
           hasDrawings={hasDrawings}
           onClearDrawingsRequest={() => onClearDrawingsRequest?.(chart.id)}
+          disableDrawings={disableDrawings}
         />
       ) : null}
       <div className="pointer-events-none absolute inset-y-8 left-9 border-l border-border/40" />
@@ -1162,7 +1171,7 @@ function ChartCell({
             className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/2 text-center text-[11px] font-medium tabular-nums text-foreground/70 dark:text-foreground/80"
             style={{ top: tick.top }}
           >
-            {formatNumber(tick.value)}
+            {formatYValue(tick.value)}
           </div>
         ))}
         {axisOverlay?.latestValues.map((latest) => (
@@ -1175,7 +1184,7 @@ function ChartCell({
               color: latest.textColor,
             }}
           >
-            {formatNumber(latest.value)}
+            {formatYValue(latest.value)}
           </div>
         ))}
       </div>
@@ -1195,7 +1204,7 @@ function ChartCell({
             className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-center text-[11px] font-medium tabular-nums text-foreground/70 dark:text-foreground/80"
             style={{ left: tick.left }}
           >
-            {formatCompactNumber(tick.value)}
+            {formatXTick(tick.value)}
           </div>
         ))}
       </div>
@@ -1207,6 +1216,8 @@ function CrosshairOverlay({
   crosshair,
   height = "100%",
   xAxisLabel = "STEP",
+  formatXValue = formatNumber,
+  formatYValue = formatNumber,
 }) {
   if (!crosshair) return null;
 
@@ -1243,7 +1254,7 @@ function CrosshairOverlay({
         }}
       >
         <div className="mb-1 font-medium">
-          {xAxisLabel}: {formatNumber(crosshair.xValue)}
+          {xAxisLabel}: {formatXValue(crosshair.xValue)}
         </div>
         {crosshair.points.map((point) => (
           <div
@@ -1256,7 +1267,7 @@ function CrosshairOverlay({
             />
             <div className="min-w-0">
               <div className="truncate text-muted-foreground">{point.name}</div>
-              <div className="tabular-nums">{formatNumber(point.yValue)}</div>
+              <div className="tabular-nums">{formatYValue(point.yValue)}</div>
             </div>
           </div>
         ))}
@@ -1700,6 +1711,10 @@ function LeanChartFullscreenOverlay({
   onChartContextMenu,
   topMarkers = EMPTY_ARRAY,
   onTopMarkerClick,
+  disableDrawings = false,
+  formatXTick = formatCompactNumber,
+  formatXValue = formatNumber,
+  formatYValue = formatNumber,
 }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
@@ -1719,6 +1734,9 @@ function LeanChartFullscreenOverlay({
   const [visible, setVisible] = useState(false);
   const [rectangleZoomActive, setRectangleZoomActive] = useState(false);
   const [rectangleZoomRect, setRectangleZoomRect] = useState(null);
+  const chartDrawings = disableDrawings ? EMPTY_ARRAY : drawings;
+  const chartActiveDrawingTool = disableDrawings ? null : activeDrawingTool;
+  const chartSelectedDrawingId = disableDrawings ? null : selectedDrawingId;
 
   const requestRender = useCallback(() => {
     setRevision((value) => value + 1);
@@ -1743,11 +1761,11 @@ function LeanChartFullscreenOverlay({
     finishEditDrawing,
     deleteSelectedDrawing,
   } = useDrawingInteractions({
-    drawings,
-    onDrawingsChange,
-    activeDrawingTool,
+    drawings: chartDrawings,
+    onDrawingsChange: disableDrawings ? undefined : onDrawingsChange,
+    activeDrawingTool: chartActiveDrawingTool,
     onActiveDrawingToolChange,
-    selectedDrawingId,
+    selectedDrawingId: chartSelectedDrawingId,
     onSelectedDrawingIdChange,
     createDrawingId,
     onModeChange: () => {
@@ -1766,9 +1784,9 @@ function LeanChartFullscreenOverlay({
   }, [clearDraft, onActiveDrawingToolChange]);
 
   const toggleSelectedDrawingExtend = useCallback(() => {
-    if (!selectedDrawingId || !onDrawingsChange) return;
+    if (disableDrawings || !chartSelectedDrawingId || !onDrawingsChange) return;
     onDrawingsChange(
-      updateDrawingById(drawings, selectedDrawingId, (drawing) => ({
+      updateDrawingById(chartDrawings, chartSelectedDrawingId, (drawing) => ({
         ...drawing,
         style: {
           ...drawing.style,
@@ -1776,13 +1794,13 @@ function LeanChartFullscreenOverlay({
         },
       })),
     );
-  }, [drawings, onDrawingsChange, selectedDrawingId]);
+  }, [chartDrawings, chartSelectedDrawingId, disableDrawings, onDrawingsChange]);
 
   const updateSelectedDrawingColor = useCallback(
     (color) => {
-      if (!selectedDrawingId || !onDrawingsChange) return;
+      if (disableDrawings || !chartSelectedDrawingId || !onDrawingsChange) return;
       onDrawingsChange(
-        updateDrawingById(drawings, selectedDrawingId, (drawing) => ({
+        updateDrawingById(chartDrawings, chartSelectedDrawingId, (drawing) => ({
           ...drawing,
           style: {
             ...drawing.style,
@@ -1791,14 +1809,14 @@ function LeanChartFullscreenOverlay({
         })),
       );
     },
-    [drawings, onDrawingsChange, selectedDrawingId],
+    [chartDrawings, chartSelectedDrawingId, disableDrawings, onDrawingsChange],
   );
 
   const updateSelectedDrawingText = useCallback(
     (text) => {
-      if (!selectedDrawingId || !onDrawingsChange) return;
+      if (disableDrawings || !chartSelectedDrawingId || !onDrawingsChange) return;
       onDrawingsChange(
-        updateDrawingById(drawings, selectedDrawingId, (drawing) => ({
+        updateDrawingById(chartDrawings, chartSelectedDrawingId, (drawing) => ({
           ...drawing,
           style: {
             ...drawing.style,
@@ -1807,7 +1825,7 @@ function LeanChartFullscreenOverlay({
         })),
       );
     },
-    [drawings, onDrawingsChange, selectedDrawingId],
+    [chartDrawings, chartSelectedDrawingId, disableDrawings, onDrawingsChange],
   );
 
   useEffect(() => {
@@ -2044,7 +2062,7 @@ function LeanChartFullscreenOverlay({
         point.y >= layout.plot.y &&
         point.y <= layout.plot.y + layout.plot.height;
 
-      if (activeDrawingTool && DRAWING_TOOLS.has(activeDrawingTool)) {
+      if (chartActiveDrawingTool && DRAWING_TOOLS.has(chartActiveDrawingTool)) {
         if (!inPlot || event.button !== 0) return;
         event.preventDefault();
         const dataPoint = screenPointToDataPoint({
@@ -2057,13 +2075,13 @@ function LeanChartFullscreenOverlay({
           yCenterOffsetRef,
         });
         if (
-          activeDrawingTool === "hline" ||
-          activeDrawingTool === "vline" ||
-          activeDrawingTool === "pin"
+          chartActiveDrawingTool === "hline" ||
+          chartActiveDrawingTool === "vline" ||
+          chartActiveDrawingTool === "pin"
         ) {
           commitDrawing({
             chartId: chart.id,
-            type: activeDrawingTool,
+            type: chartActiveDrawingTool,
             start: dataPoint,
             end: dataPoint,
           });
@@ -2087,12 +2105,12 @@ function LeanChartFullscreenOverlay({
         return;
       }
 
-      if (inPlot && Array.isArray(drawings) && drawings.length > 0) {
-        const chartDrawings = getDrawingsForChart(drawings, chart.id);
-        for (let i = chartDrawings.length - 1; i >= 0; i -= 1) {
+      if (inPlot && Array.isArray(chartDrawings) && chartDrawings.length > 0) {
+        const hitDrawings = getDrawingsForChart(chartDrawings, chart.id);
+        for (let i = hitDrawings.length - 1; i >= 0; i -= 1) {
           const hit = hitTestDrawing({
             point,
-            drawing: chartDrawings[i],
+            drawing: hitDrawings[i],
             layout,
             projectPoint: (dataPoint, targetLayout) =>
               projectDataPointToScreenPoint({
@@ -2204,10 +2222,9 @@ function LeanChartFullscreenOverlay({
       getLayout,
       getLocalPoint,
       initialVisiblePoints,
-      activeDrawingTool,
-      chart,
+      chartActiveDrawingTool,
+      chartDrawings,
       commitDrawing,
-      drawings,
       onSelectedDrawingIdChange,
       rectangleZoomActive,
       viewStateRef,
@@ -2234,7 +2251,7 @@ function LeanChartFullscreenOverlay({
             yCenterOffsetRef,
           });
           const edit = drawingEditRef.current;
-          const nextDrawings = updateDrawingById(drawings, edit.id, (drawing) => {
+          const nextDrawings = updateDrawingById(chartDrawings, edit.id, (drawing) => {
             if (drawing.type === "hline") {
               const deltaX = (drawing.end?.x ?? drawing.start.x) - drawing.start.x;
               return {
@@ -2262,7 +2279,7 @@ function LeanChartFullscreenOverlay({
           return;
         }
 
-        if (activeDrawingTool && DRAWING_TOOLS.has(activeDrawingTool)) {
+        if (chartActiveDrawingTool && DRAWING_TOOLS.has(chartActiveDrawingTool)) {
           if (
             drawingPoint.x < drawingLayout.plot.x ||
             drawingPoint.x > drawingLayout.plot.x + drawingLayout.plot.width ||
@@ -2281,13 +2298,13 @@ function LeanChartFullscreenOverlay({
             yCenterOffsetRef,
           });
           const startPoint =
-            activeDrawingTool === "trendline"
+            chartActiveDrawingTool === "trendline"
               ? drawingSessionRef.current.startPoint
               : dataPoint;
-          if (startPoint || activeDrawingTool !== "trendline") {
+          if (startPoint || chartActiveDrawingTool !== "trendline") {
             updateDraftDrawing({
               chartId: chart.id,
-              type: activeDrawingTool,
+              type: chartActiveDrawingTool,
               start: startPoint || dataPoint,
               end: dataPoint,
             });
@@ -2362,8 +2379,8 @@ function LeanChartFullscreenOverlay({
     [
       chart.id,
       chart,
-      activeDrawingTool,
-      drawings,
+      chartActiveDrawingTool,
+      chartDrawings,
       getLayout,
       getLocalPoint,
       initialVisiblePoints,
@@ -2541,27 +2558,30 @@ function LeanChartFullscreenOverlay({
         toggleRectangleZoom();
         return;
       }
-      if (event.key.toLowerCase() === "m") {
+      if (!disableDrawings && event.key.toLowerCase() === "m") {
         event.preventDefault();
         onMovingAverageToggle?.(chart.id);
         requestRender();
         return;
       }
-      if (["t", "h", "v", "p"].includes(event.key.toLowerCase())) {
+      if (
+        !disableDrawings &&
+        ["t", "h", "v", "p"].includes(event.key.toLowerCase())
+      ) {
         event.preventDefault();
         const toolByKey = { t: "trendline", h: "hline", v: "vline", p: "pin" };
         toggleDrawingTool(toolByKey[event.key.toLowerCase()]);
         return;
       }
       if (event.key === "Delete" || event.key === "Backspace") {
-        if (!selectedDrawingId) return;
+        if (disableDrawings || !chartSelectedDrawingId) return;
         event.preventDefault();
         deleteSelectedDrawing();
         return;
       }
       if (event.key === "Escape" || event.key.toLowerCase() === "f") {
         event.preventDefault();
-        if (activeDrawingTool || draftDrawing || drawingEditRef.current) {
+        if (chartActiveDrawingTool || draftDrawing || drawingEditRef.current) {
           cancelDrawing();
           return;
         }
@@ -2579,9 +2599,11 @@ function LeanChartFullscreenOverlay({
   }, [
     chart.id,
     closeWithTransition,
-    activeDrawingTool,
+    chartActiveDrawingTool,
+    chartSelectedDrawingId,
     cancelDrawing,
     deleteSelectedDrawing,
+    disableDrawings,
     draftDrawing,
     onReset,
     onMovingAverageToggle,
@@ -2589,14 +2611,13 @@ function LeanChartFullscreenOverlay({
     requestRender,
     toggleRectangleZoom,
     toggleDrawingTool,
-    selectedDrawingId,
   ]);
 
   const fullscreenLayout = getLayout();
   const selectedDrawingLayout = getSelectedDrawingLayout(
     fullscreenLayout ? [fullscreenLayout] : [],
-    drawings,
-    selectedDrawingId,
+    chartDrawings,
+    chartSelectedDrawingId,
   );
 
   return (
@@ -2612,7 +2633,7 @@ function LeanChartFullscreenOverlay({
         }`}
         style={{
           cursor:
-            rectangleZoomActive || activeDrawingTool ? "crosshair" : undefined,
+            rectangleZoomActive || chartActiveDrawingTool ? "crosshair" : undefined,
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -2639,21 +2660,24 @@ function LeanChartFullscreenOverlay({
           onJumpLatest={onJumpLatest}
           onRectangleZoomToggle={toggleRectangleZoom}
           rectangleZoomActive={rectangleZoomActive}
-          movingAverage={movingAverageByChart?.[chart.id]}
+          movingAverage={disableDrawings ? null : movingAverageByChart?.[chart.id]}
           onMovingAverageToggle={onMovingAverageToggle}
-          activeDrawingTool={activeDrawingTool}
+          activeDrawingTool={chartActiveDrawingTool}
           onDrawingToolToggle={toggleDrawingTool}
-          hasDrawings={getDrawingsForChart(drawings, chart.id).length > 0}
+          hasDrawings={getDrawingsForChart(chartDrawings, chart.id).length > 0}
           onClearDrawingsRequest={onClearDrawingsRequest}
+          disableDrawings={disableDrawings}
+          formatXTick={formatXTick}
+          formatYValue={formatYValue}
           setRef={(node) => {
             chartRef.current = node;
           }}
         />
         <DrawingOverlay
           layouts={fullscreenLayout ? [fullscreenLayout] : []}
-          drawings={drawings}
-          draftDrawing={draftDrawing}
-          selectedDrawingId={selectedDrawingId}
+          drawings={chartDrawings}
+          draftDrawing={disableDrawings ? null : draftDrawing}
+          selectedDrawingId={chartSelectedDrawingId}
           projectPoint={(dataPoint, targetLayout) =>
             projectDataPointToScreenPoint({
               point: dataPoint,
@@ -2688,7 +2712,7 @@ function LeanChartFullscreenOverlay({
             onTextChange={updateSelectedDrawingText}
           />
         ) : null}
-        {fullscreenLayout && movingAverageByChart?.[chart.id]?.enabled ? (
+        {!disableDrawings && fullscreenLayout && movingAverageByChart?.[chart.id]?.enabled ? (
           <MovingAverageOptionsToolbar
             movingAverage={movingAverageByChart[chart.id]}
             style={getMovingAverageOptionsToolbarStyle(fullscreenLayout)}
@@ -2701,6 +2725,8 @@ function LeanChartFullscreenOverlay({
           crosshair={crosshair}
           height="100%"
           xAxisLabel={xAxisLabel}
+          formatXValue={formatXValue}
+          formatYValue={formatYValue}
         />
         <RectangleZoomOverlay rect={rectangleZoomRect} />
       </div>
@@ -2735,6 +2761,10 @@ export function ChartGrid({
   topMarkers = EMPTY_ARRAY,
   onTopMarkerClick,
   xAxisLabel = "STEP",
+  disableDrawings = false,
+  formatXTick = formatCompactNumber,
+  formatXValue = formatNumber,
+  formatYValue = formatNumber,
 }) {
   const containerRef = useRef(null);
   const gridRef = useRef(null);
@@ -2762,6 +2792,9 @@ export function ChartGrid({
   const [fullscreenChartId, setFullscreenChartId] = useState(null);
   const [rectangleZoomChartId, setRectangleZoomChartId] = useState(null);
   const [rectangleZoomRect, setRectangleZoomRect] = useState(null);
+  const chartDrawings = disableDrawings ? EMPTY_ARRAY : drawings;
+  const chartActiveDrawingTool = disableDrawings ? null : activeDrawingTool;
+  const chartSelectedDrawingId = disableDrawings ? null : selectedDrawingId;
 
   const requestRender = useCallback(() => {
     setRevision((value) => value + 1);
@@ -2781,11 +2814,11 @@ export function ChartGrid({
     finishEditDrawing,
     deleteSelectedDrawing,
   } = useDrawingInteractions({
-    drawings,
-    onDrawingsChange,
-    activeDrawingTool,
+    drawings: chartDrawings,
+    onDrawingsChange: disableDrawings ? undefined : onDrawingsChange,
+    activeDrawingTool: chartActiveDrawingTool,
     onActiveDrawingToolChange,
-    selectedDrawingId,
+    selectedDrawingId: chartSelectedDrawingId,
     onSelectedDrawingIdChange,
     createDrawingId,
     focusedChartId,
@@ -2844,9 +2877,9 @@ export function ChartGrid({
   );
 
   const toggleSelectedDrawingExtend = useCallback(() => {
-    if (!selectedDrawingId || !onDrawingsChange) return;
+    if (disableDrawings || !chartSelectedDrawingId || !onDrawingsChange) return;
     onDrawingsChange(
-      updateDrawingById(drawings, selectedDrawingId, (drawing) => ({
+      updateDrawingById(chartDrawings, chartSelectedDrawingId, (drawing) => ({
         ...drawing,
         style: {
           ...drawing.style,
@@ -2854,13 +2887,13 @@ export function ChartGrid({
         },
       })),
     );
-  }, [drawings, onDrawingsChange, selectedDrawingId]);
+  }, [chartDrawings, chartSelectedDrawingId, disableDrawings, onDrawingsChange]);
 
   const updateSelectedDrawingColor = useCallback(
     (color) => {
-      if (!selectedDrawingId || !onDrawingsChange) return;
+      if (disableDrawings || !chartSelectedDrawingId || !onDrawingsChange) return;
       onDrawingsChange(
-        updateDrawingById(drawings, selectedDrawingId, (drawing) => ({
+        updateDrawingById(chartDrawings, chartSelectedDrawingId, (drawing) => ({
           ...drawing,
           style: {
             ...drawing.style,
@@ -2869,14 +2902,14 @@ export function ChartGrid({
         })),
       );
     },
-    [drawings, onDrawingsChange, selectedDrawingId],
+    [chartDrawings, chartSelectedDrawingId, disableDrawings, onDrawingsChange],
   );
 
   const updateSelectedDrawingText = useCallback(
     (text) => {
-      if (!selectedDrawingId || !onDrawingsChange) return;
+      if (disableDrawings || !chartSelectedDrawingId || !onDrawingsChange) return;
       onDrawingsChange(
-        updateDrawingById(drawings, selectedDrawingId, (drawing) => ({
+        updateDrawingById(chartDrawings, chartSelectedDrawingId, (drawing) => ({
           ...drawing,
           style: {
             ...drawing.style,
@@ -2885,7 +2918,7 @@ export function ChartGrid({
         })),
       );
     },
-    [drawings, onDrawingsChange, selectedDrawingId],
+    [chartDrawings, chartSelectedDrawingId, disableDrawings, onDrawingsChange],
   );
 
   const { getAppendAnimatedPoint } = useAppendAnimations({
@@ -3426,8 +3459,8 @@ export function ChartGrid({
       const drawingLayout = findLayoutAt(point.x, point.y);
       if (
         drawingLayout &&
-        activeDrawingTool &&
-        DRAWING_TOOLS.has(activeDrawingTool)
+        chartActiveDrawingTool &&
+        DRAWING_TOOLS.has(chartActiveDrawingTool)
       ) {
         if (event.button !== 0) return;
         event.preventDefault();
@@ -3442,13 +3475,13 @@ export function ChartGrid({
           yCenterOffsetRef,
         });
         if (
-          activeDrawingTool === "hline" ||
-          activeDrawingTool === "vline" ||
-          activeDrawingTool === "pin"
+          chartActiveDrawingTool === "hline" ||
+          chartActiveDrawingTool === "vline" ||
+          chartActiveDrawingTool === "pin"
         ) {
           commitDrawing({
             chartId: drawingLayout.chart.id,
-            type: activeDrawingTool,
+            type: chartActiveDrawingTool,
             start: dataPoint,
             end: dataPoint,
           });
@@ -3473,15 +3506,15 @@ export function ChartGrid({
         return;
       }
 
-      if (drawingLayout && Array.isArray(drawings) && drawings.length > 0) {
-        const chartDrawings = getDrawingsForChart(
-          drawings,
+      if (drawingLayout && Array.isArray(chartDrawings) && chartDrawings.length > 0) {
+        const hitDrawings = getDrawingsForChart(
+          chartDrawings,
           drawingLayout.chart.id,
         );
-        for (let i = chartDrawings.length - 1; i >= 0; i -= 1) {
+        for (let i = hitDrawings.length - 1; i >= 0; i -= 1) {
           const hit = hitTestDrawing({
             point,
-            drawing: chartDrawings[i],
+            drawing: hitDrawings[i],
             layout: drawingLayout,
             projectPoint: (dataPoint, targetLayout) =>
               projectDataPointToScreenPoint({
@@ -3602,9 +3635,9 @@ export function ChartGrid({
       initialVisiblePoints,
       fullscreenChartId,
       rectangleZoomChartId,
-      activeDrawingTool,
+      chartActiveDrawingTool,
+      chartDrawings,
       commitDrawing,
-      drawings,
       onSelectedDrawingIdChange,
     ],
   );
@@ -3617,7 +3650,7 @@ export function ChartGrid({
       if (drawingPoint) {
         if (drawingEditRef.current) {
           const editLayout = getChartLayout().find((layout) =>
-            getDrawingsForChart(drawings, layout.chart.id).some(
+            getDrawingsForChart(chartDrawings, layout.chart.id).some(
               (drawing) => drawing.id === drawingEditRef.current.id,
             ),
           );
@@ -3632,7 +3665,7 @@ export function ChartGrid({
               yCenterOffsetRef,
             });
             const edit = drawingEditRef.current;
-            const nextDrawings = updateDrawingById(drawings, edit.id, (drawing) => {
+            const nextDrawings = updateDrawingById(chartDrawings, edit.id, (drawing) => {
               if (drawing.type === "hline") {
                 const deltaX = (drawing.end?.x ?? drawing.start.x) - drawing.start.x;
                 return {
@@ -3661,7 +3694,7 @@ export function ChartGrid({
           return;
         }
 
-        if (activeDrawingTool && DRAWING_TOOLS.has(activeDrawingTool)) {
+        if (chartActiveDrawingTool && DRAWING_TOOLS.has(chartActiveDrawingTool)) {
           const drawingLayout = findLayoutAt(drawingPoint.x, drawingPoint.y);
           if (!drawingLayout) return;
           const dataPoint = screenPointToDataPoint({
@@ -3675,14 +3708,14 @@ export function ChartGrid({
           });
           const session = drawingSessionRef.current;
           const startPoint =
-            activeDrawingTool === "trendline" &&
+            chartActiveDrawingTool === "trendline" &&
             session.chartId === drawingLayout.chart.id
               ? session.startPoint
               : dataPoint;
-          if (startPoint || activeDrawingTool !== "trendline") {
+          if (startPoint || chartActiveDrawingTool !== "trendline") {
             updateDraftDrawing({
               chartId: drawingLayout.chart.id,
-              type: activeDrawingTool,
+              type: chartActiveDrawingTool,
               start: startPoint || dataPoint,
               end: dataPoint,
             });
@@ -3758,8 +3791,8 @@ export function ChartGrid({
     },
     [
       fullscreenChartId,
-      activeDrawingTool,
-      drawings,
+      chartActiveDrawingTool,
+      chartDrawings,
       findLayoutAt,
       getChartLayout,
       getLocalPoint,
@@ -3982,26 +4015,29 @@ export function ChartGrid({
         toggleRectangleZoom(focusedChartId);
         return;
       }
-      if (event.key.toLowerCase() === "m") {
+      if (!disableDrawings && event.key.toLowerCase() === "m") {
         event.preventDefault();
         toggleMovingAverage(focusedChartId);
         return;
       }
-      if (["t", "h", "v", "p"].includes(event.key.toLowerCase())) {
+      if (
+        !disableDrawings &&
+        ["t", "h", "v", "p"].includes(event.key.toLowerCase())
+      ) {
         event.preventDefault();
         const toolByKey = { t: "trendline", h: "hline", v: "vline", p: "pin" };
         toggleDrawingTool(toolByKey[event.key.toLowerCase()]);
         return;
       }
       if (event.key === "Delete" || event.key === "Backspace") {
-        if (!selectedDrawingId) return;
+        if (disableDrawings || !chartSelectedDrawingId) return;
         event.preventDefault();
         deleteSelectedDrawing();
         return;
       }
       if (
         event.key === "Escape" &&
-        (activeDrawingTool || draftDrawing || drawingEditRef.current)
+        (chartActiveDrawingTool || draftDrawing || drawingEditRef.current)
       ) {
         event.preventDefault();
         cancelDrawing();
@@ -4026,15 +4062,16 @@ export function ChartGrid({
   }, [
     focusedChartId,
     fullscreenChartId,
-    activeDrawingTool,
+    chartActiveDrawingTool,
+    chartSelectedDrawingId,
     cancelDrawing,
     deleteSelectedDrawing,
+    disableDrawings,
     draftDrawing,
     focusChartByKeyboard,
     openFullscreen,
     rectangleZoomChartId,
     resetChartView,
-    selectedDrawingId,
     toggleMovingAverage,
     toggleDrawingTool,
     toggleRectangleZoom,
@@ -4046,8 +4083,8 @@ export function ChartGrid({
   const chartLayouts = fullscreenChart ? [] : getChartLayout();
   const selectedDrawingLayout = getSelectedDrawingLayout(
     chartLayouts,
-    drawings,
-    selectedDrawingId,
+    chartDrawings,
+    chartSelectedDrawingId,
   );
 
   return (
@@ -4056,7 +4093,7 @@ export function ChartGrid({
       className={`aliencharts-root relative h-full overflow-y-auto ${className}`}
       style={{
         cursor:
-          rectangleZoomChartId || activeDrawingTool ? "crosshair" : undefined,
+          rectangleZoomChartId || chartActiveDrawingTool ? "crosshair" : undefined,
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -4092,14 +4129,17 @@ export function ChartGrid({
             onJumpLatest={jumpChartToLatest}
             onRectangleZoomToggle={toggleRectangleZoom}
             rectangleZoomActive={rectangleZoomChartId === chart.id}
-            movingAverage={movingAverageByChart?.[chart.id]}
+            movingAverage={disableDrawings ? null : movingAverageByChart?.[chart.id]}
             onMovingAverageToggle={toggleMovingAverage}
             activeDrawingTool={
-              focusedChartId === chart.id ? activeDrawingTool : null
+              focusedChartId === chart.id ? chartActiveDrawingTool : null
             }
             onDrawingToolToggle={toggleDrawingTool}
-            hasDrawings={getDrawingsForChart(drawings, chart.id).length > 0}
+            hasDrawings={getDrawingsForChart(chartDrawings, chart.id).length > 0}
             onClearDrawingsRequest={onClearDrawingsRequest}
+            disableDrawings={disableDrawings}
+            formatXTick={formatXTick}
+            formatYValue={formatYValue}
             setRef={(node) => {
               if (node) chartRefs.current.set(chart.id, node);
               else chartRefs.current.delete(chart.id);
@@ -4111,12 +4151,14 @@ export function ChartGrid({
         crosshair={fullscreenChart ? null : crosshair}
         height={containerRef.current?.scrollHeight ?? "100%"}
         xAxisLabel={xAxisLabel}
+        formatXValue={formatXValue}
+        formatYValue={formatYValue}
       />
       <DrawingOverlay
         layouts={chartLayouts}
-        drawings={drawings}
-        draftDrawing={fullscreenChart ? null : draftDrawing}
-        selectedDrawingId={selectedDrawingId}
+        drawings={chartDrawings}
+        draftDrawing={fullscreenChart || disableDrawings ? null : draftDrawing}
+        selectedDrawingId={chartSelectedDrawingId}
         projectPoint={(dataPoint, targetLayout) =>
           projectDataPointToScreenPoint({
             point: dataPoint,
@@ -4146,7 +4188,7 @@ export function ChartGrid({
           onTextChange={updateSelectedDrawingText}
         />
       ) : null}
-      {!fullscreenChart && focusedChartId && movingAverageByChart?.[focusedChartId]?.enabled ? (
+      {!disableDrawings && !fullscreenChart && focusedChartId && movingAverageByChart?.[focusedChartId]?.enabled ? (
         (() => {
           const layout = chartLayouts.find(
             (candidate) => candidate.chart.id === focusedChartId,
@@ -4186,17 +4228,21 @@ export function ChartGrid({
           onReset={resetChartView}
           onJumpLatest={jumpChartToLatest}
           xAxisLabel={xAxisLabel}
-          drawings={drawings}
+          drawings={chartDrawings}
           onDrawingsChange={onDrawingsChange}
-          activeDrawingTool={activeDrawingTool}
+          activeDrawingTool={chartActiveDrawingTool}
           onActiveDrawingToolChange={onActiveDrawingToolChange}
-          selectedDrawingId={selectedDrawingId}
+          selectedDrawingId={chartSelectedDrawingId}
           onSelectedDrawingIdChange={onSelectedDrawingIdChange}
           createDrawingId={createDrawingId}
           onClearDrawingsRequest={onClearDrawingsRequest}
           onChartContextMenu={onChartContextMenu}
           topMarkers={topMarkers}
           onTopMarkerClick={onTopMarkerClick}
+          disableDrawings={disableDrawings}
+          formatXTick={formatXTick}
+          formatXValue={formatXValue}
+          formatYValue={formatYValue}
         />
       ) : null}
     </div>
