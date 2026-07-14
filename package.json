@@ -24,15 +24,19 @@
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
+  "types": "./index.d.ts",
   "exports": {
     ".": {
+      "types": "./index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
     "./styles.css": "./dist/aliencharts.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "assets",
+    "index.d.ts"
   ],
   "sideEffects": [
     "**/*.css"

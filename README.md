@@ -1,4 +1,7 @@
-# AlienCharts
+<h1 align="center">
+  <img src="./assets/aliencharts_logo_small.png" alt="AlienCharts logo" width="88" height="88"><br>
+  <img src="./assets/aliencharts_title.svg" alt="AlienCharts" height="42">
+</h1>
 
 GPU-rendered chart grid for multi-metric dashboards — such as monitoring AI training runs, where you need many live-updating charts with millions of points each.
 

@@ -1679,7 +1679,7 @@ const drawChartLayouts = ({
   return nextAxisOverlays;
 };
 
-function LeanChartFullscreenOverlay({
+function ChartFullscreenOverlay({
   chart,
   dataRevision,
   renderRevision,
@@ -4207,7 +4207,7 @@ export function ChartGrid({
       ) : null}
       <RectangleZoomOverlay rect={fullscreenChart ? null : rectangleZoomRect} />
       {fullscreenChart ? (
-        <LeanChartFullscreenOverlay
+        <ChartFullscreenOverlay
           chart={fullscreenChart}
           dataRevision={dataRevision}
           renderRevision={revision}
