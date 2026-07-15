@@ -3984,6 +3984,8 @@ export function ChartGrid({
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // The fullscreen overlay owns keyboard shortcuts while it is open.
+      if (fullscreenChartId) return;
       const target = event.target;
       const editable =
         target instanceof HTMLElement &&
