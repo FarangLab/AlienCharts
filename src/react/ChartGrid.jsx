@@ -1139,7 +1139,6 @@ function ChartCell({
           disableDrawings={disableDrawings}
         />
       ) : null}
-      <div className="pointer-events-none absolute inset-y-8 left-9 border-l border-border/40" />
       {axisOverlay?.latestValues.map((latest) =>
         latest.left >= 0 && latest.left <= axisOverlay.plotWidth ? (
           <div
@@ -1247,7 +1246,7 @@ function CrosshairOverlay({
         />
       ))}
       <div
-        className="pointer-events-none absolute z-30 w-[220px] rounded-sm border border-border bg-popover px-2 py-1.5 text-xs text-popover-foreground shadow-sm"
+        className="pointer-events-none absolute z-30 w-[220px] rounded-sm border border-border/70 bg-popover/80 px-2 py-1.5 text-xs text-popover-foreground shadow-sm backdrop-blur-sm"
         style={{
           left: crosshair.tooltipX,
           top: crosshair.tooltipY,
@@ -2013,20 +2012,19 @@ function ChartFullscreenOverlay({
             nearestPoint.y >= layout.plot.y - 1 &&
             nearestPoint.y <= layout.plot.y + layout.plot.height + 1,
         );
-      const primaryPoint = nearestPoints[0];
       const tooltipLeft =
-        primaryPoint &&
-        primaryPoint.x + TOOLTIP_WIDTH + TOOLTIP_OFFSET >
-          layout.rect.x + layout.rect.width
-          ? primaryPoint.x - TOOLTIP_WIDTH - TOOLTIP_OFFSET
-          : (primaryPoint?.x ?? point.x) + TOOLTIP_OFFSET;
+        point.x + TOOLTIP_WIDTH + TOOLTIP_OFFSET >
+        layout.rect.x + layout.rect.width
+          ? point.x - TOOLTIP_WIDTH - TOOLTIP_OFFSET
+          : point.x + TOOLTIP_OFFSET;
       const tooltipTop = Math.max(
         layout.rect.y + PLOT_PADDING.top,
         Math.min(
-          (primaryPoint?.y ?? point.y) + TOOLTIP_OFFSET,
+          point.y + TOOLTIP_OFFSET,
           layout.rect.y + layout.rect.height - 96,
         ),
       );
+      const primaryPoint = nearestPoints[0];
       setCrosshair({
         chartId: chart.id,
         title: chart.title,
@@ -3348,20 +3346,19 @@ export function ChartGrid({
             nearestPoint.y >= layout.plot.y - 1 &&
             nearestPoint.y <= layout.plot.y + layout.plot.height + 1,
         );
-      const primaryPoint = nearestPoints[0];
       const tooltipLeft =
-        primaryPoint &&
-        primaryPoint.x + TOOLTIP_WIDTH + TOOLTIP_OFFSET >
-          layout.rect.x + layout.rect.width
-          ? primaryPoint.x - TOOLTIP_WIDTH - TOOLTIP_OFFSET
-          : (primaryPoint?.x ?? point.x) + TOOLTIP_OFFSET;
+        point.x + TOOLTIP_WIDTH + TOOLTIP_OFFSET >
+        layout.rect.x + layout.rect.width
+          ? point.x - TOOLTIP_WIDTH - TOOLTIP_OFFSET
+          : point.x + TOOLTIP_OFFSET;
       const tooltipTop = Math.max(
         layout.rect.y + PLOT_PADDING.top,
         Math.min(
-          (primaryPoint?.y ?? point.y) + TOOLTIP_OFFSET,
+          point.y + TOOLTIP_OFFSET,
           layout.rect.y + layout.rect.height - 96,
         ),
       );
+      const primaryPoint = nearestPoints[0];
       setCrosshair({
         chartId: layout.chart.id,
         title: layout.chart.title,
