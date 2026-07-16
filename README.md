@@ -137,6 +137,10 @@ Renders a responsive grid of charts. Commonly used props:
 | `xAxisLabel` | `string` | `"STEP"` | Label shown on the x-axis. |
 | `backgroundColor` | `string` | — | Chart background color. |
 | `antialiasLines` | `boolean` | `false` | Enable line antialiasing. |
+| `gridLines` | `boolean \| { xSpacing?: number, ySpacing?: number }` | `false` | Show plot grid lines. Pass an object to configure pixel spacing (defaults to `80` x `48`). |
+| `showToolbar` | `boolean` | `true` | Show the toolbar on the focused chart. |
+| `showLatestValueLine` | `boolean` | `true` | Show the partial dashed line between the latest point and its Y-axis label. |
+| `showTooltips` | `boolean` | `true` | Show the crosshair, nearest-point markers, and tooltip. |
 | `drawings` | `Drawing[]` | `[]` | Controlled drawing objects. |
 | `onDrawingsChange` | `(drawings) => void` | — | Called when drawings are created, edited, deleted, or styled. |
 | `activeDrawingTool` | `"trendline" \| "hline" \| "vline" \| "pin" \| null` | `null` | Controlled active drawing tool. |

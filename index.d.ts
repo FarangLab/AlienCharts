@@ -122,6 +122,15 @@ export interface ChartGridProps {
   initialVisiblePoints?: number | null;
   backgroundColor?: string;
   antialiasLines?: boolean;
+  gridLines?: boolean | {
+    /** Horizontal distance in pixels between vertical grid lines. */
+    xSpacing?: number;
+    /** Vertical distance in pixels between horizontal grid lines. */
+    ySpacing?: number;
+  };
+  showToolbar?: boolean;
+  showLatestValueLine?: boolean;
+  showTooltips?: boolean;
   followLatest?: boolean;
   followVisibleLatest?: boolean;
   jumpToLatestRevision?: number;

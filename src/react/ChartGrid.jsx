@@ -39,6 +39,8 @@ const DASH_LENGTH_PX = 7;
 const DASH_GAP_PX = 5;
 const TOOLTIP_WIDTH = 220;
 const TOOLTIP_OFFSET = 12;
+const DEFAULT_GRID_X_SPACING = 80;
+const DEFAULT_GRID_Y_SPACING = 48;
 const DEFAULT_CHART_BACKGROUND = "#f5f9ff";
 const EMPTY_ARRAY = [];
 const EMPTY_OBJECT = {};
@@ -1055,6 +1057,9 @@ function ChartCell({
   hasDrawings = false,
   onClearDrawingsRequest,
   disableDrawings = false,
+  gridLines = false,
+  showToolbar = true,
+  showLatestValueLine = true,
   height = CHART_HEIGHT,
   isFullscreen = false,
   backgroundColor = DEFAULT_CHART_BACKGROUND,
@@ -1074,6 +1079,15 @@ function ChartCell({
           right: RIGHT_AXIS_WIDTH + 6,
           bottom: PLOT_PADDING.bottom + 6,
         };
+  const gridOptions = gridLines === true ? EMPTY_OBJECT : gridLines;
+  const gridXSpacing = Math.max(
+    8,
+    Number(gridOptions?.xSpacing) || DEFAULT_GRID_X_SPACING,
+  );
+  const gridYSpacing = Math.max(
+    8,
+    Number(gridOptions?.ySpacing) || DEFAULT_GRID_Y_SPACING,
+  );
 
   return (
     <div
@@ -1101,6 +1115,20 @@ function ChartCell({
           <span className="truncate">{chart.title}</span>
         </div>
       </div>
+      {gridLines ? (
+        <div
+          className="pointer-events-none absolute text-border/40"
+          style={{
+            left: PLOT_PADDING.left,
+            right: PLOT_PADDING.right,
+            top: PLOT_PADDING.top,
+            bottom: PLOT_PADDING.bottom,
+            backgroundImage:
+              "linear-gradient(to right, transparent calc(100% - 1px), currentColor calc(100% - 1px)), linear-gradient(to bottom, transparent calc(100% - 1px), currentColor calc(100% - 1px))",
+            backgroundSize: `${gridXSpacing}px 100%, 100% ${gridYSpacing}px`,
+          }}
+        />
+      ) : null}
       {axisOverlay?.showJumpLatest ? (
         <button
           type="button"
@@ -1123,7 +1151,7 @@ function ChartCell({
           <ArrowLineRightIcon size={16} weight="bold" />
         </button>
       ) : null}
-      {focused ? (
+      {focused && showToolbar ? (
         <ChartToolbar
           isFullscreen={isFullscreen}
           onFullscreenToggle={onFullscreenToggle}
@@ -1139,7 +1167,7 @@ function ChartCell({
           disableDrawings={disableDrawings}
         />
       ) : null}
-      {axisOverlay?.latestValues.map((latest) =>
+      {showLatestValueLine && axisOverlay?.latestValues.map((latest) =>
         latest.left >= 0 && latest.left <= axisOverlay.plotWidth ? (
           <div
             key={`${latest.id}-connector`}
@@ -1711,6 +1739,10 @@ function ChartFullscreenOverlay({
   topMarkers = EMPTY_ARRAY,
   onTopMarkerClick,
   disableDrawings = false,
+  gridLines = false,
+  showToolbar = true,
+  showLatestValueLine = true,
+  showTooltips = true,
   formatXTick = formatCompactNumber,
   formatXValue = formatNumber,
   formatYValue = formatNumber,
@@ -1736,6 +1768,10 @@ function ChartFullscreenOverlay({
   const chartDrawings = disableDrawings ? EMPTY_ARRAY : drawings;
   const chartActiveDrawingTool = disableDrawings ? null : activeDrawingTool;
   const chartSelectedDrawingId = disableDrawings ? null : selectedDrawingId;
+
+  useEffect(() => {
+    if (!showTooltips) setCrosshair(null);
+  }, [showTooltips]);
 
   const requestRender = useCallback(() => {
     setRevision((value) => value + 1);
@@ -2234,7 +2270,7 @@ function ChartFullscreenOverlay({
 
   const handlePointerMove = useCallback(
     (event) => {
-      updateCrosshair(event);
+      if (showTooltips) updateCrosshair(event);
       const drawingPoint = getLocalPoint(event);
       const drawingLayout = getLayout();
       if (drawingPoint && drawingLayout) {
@@ -2384,6 +2420,7 @@ function ChartFullscreenOverlay({
       initialVisiblePoints,
       onDrawingsChange,
       requestRender,
+      showTooltips,
       updateCrosshair,
       viewStateRef,
       yCenterOffsetRef,
@@ -2665,6 +2702,9 @@ function ChartFullscreenOverlay({
           hasDrawings={getDrawingsForChart(chartDrawings, chart.id).length > 0}
           onClearDrawingsRequest={onClearDrawingsRequest}
           disableDrawings={disableDrawings}
+          gridLines={gridLines}
+          showToolbar={showToolbar}
+          showLatestValueLine={showLatestValueLine}
           formatXTick={formatXTick}
           formatYValue={formatYValue}
           setRef={(node) => {
@@ -2720,7 +2760,7 @@ function ChartFullscreenOverlay({
           />
         ) : null}
         <CrosshairOverlay
-          crosshair={crosshair}
+          crosshair={showTooltips ? crosshair : null}
           height="100%"
           xAxisLabel={xAxisLabel}
           formatXValue={formatXValue}
@@ -2740,6 +2780,10 @@ export function ChartGrid({
   initialVisiblePoints = null,
   backgroundColor = DEFAULT_CHART_BACKGROUND,
   antialiasLines = false,
+  gridLines = false,
+  showToolbar = true,
+  showLatestValueLine = true,
+  showTooltips = true,
   followLatest = false,
   followVisibleLatest = true,
   jumpToLatestRevision = 0,
@@ -2793,6 +2837,10 @@ export function ChartGrid({
   const chartDrawings = disableDrawings ? EMPTY_ARRAY : drawings;
   const chartActiveDrawingTool = disableDrawings ? null : activeDrawingTool;
   const chartSelectedDrawingId = disableDrawings ? null : selectedDrawingId;
+
+  useEffect(() => {
+    if (!showTooltips) setCrosshair(null);
+  }, [showTooltips]);
 
   const requestRender = useCallback(() => {
     setRevision((value) => value + 1);
@@ -3642,7 +3690,7 @@ export function ChartGrid({
   const handlePointerMove = useCallback(
     (event) => {
       if (fullscreenChartId) return;
-      updateCrosshair(event);
+      if (showTooltips) updateCrosshair(event);
       const drawingPoint = getLocalPoint(event);
       if (drawingPoint) {
         if (drawingEditRef.current) {
@@ -3796,6 +3844,7 @@ export function ChartGrid({
       initialVisiblePoints,
       onDrawingsChange,
       requestRender,
+      showTooltips,
       updateCrosshair,
     ],
   );
@@ -4137,6 +4186,9 @@ export function ChartGrid({
             hasDrawings={getDrawingsForChart(chartDrawings, chart.id).length > 0}
             onClearDrawingsRequest={onClearDrawingsRequest}
             disableDrawings={disableDrawings}
+            gridLines={gridLines}
+            showToolbar={showToolbar}
+            showLatestValueLine={showLatestValueLine}
             formatXTick={formatXTick}
             formatYValue={formatYValue}
             setRef={(node) => {
@@ -4147,7 +4199,7 @@ export function ChartGrid({
         ))}
       </div>
       <CrosshairOverlay
-        crosshair={fullscreenChart ? null : crosshair}
+        crosshair={fullscreenChart || !showTooltips ? null : crosshair}
         height={containerRef.current?.scrollHeight ?? "100%"}
         xAxisLabel={xAxisLabel}
         formatXValue={formatXValue}
@@ -4239,6 +4291,10 @@ export function ChartGrid({
           topMarkers={topMarkers}
           onTopMarkerClick={onTopMarkerClick}
           disableDrawings={disableDrawings}
+          gridLines={gridLines}
+          showToolbar={showToolbar}
+          showLatestValueLine={showLatestValueLine}
+          showTooltips={showTooltips}
           formatXTick={formatXTick}
           formatXValue={formatXValue}
           formatYValue={formatYValue}
