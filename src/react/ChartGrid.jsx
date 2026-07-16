@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { ArrowLineRightIcon, PushPinSimpleIcon } from "@phosphor-icons/react";
 import { createSeries } from "../core/lodSeries.js";
 import { createMockCharts } from "../core/mockData.js";
@@ -2772,7 +2779,7 @@ function ChartFullscreenOverlay({
   );
 }
 
-export function ChartGrid({
+export const ChartGrid = forwardRef(function ChartGrid({
   charts,
   columns = 2,
   className = "",
@@ -2807,7 +2814,7 @@ export function ChartGrid({
   formatXTick = formatCompactNumber,
   formatXValue = formatNumber,
   formatYValue = formatNumber,
-}) {
+}, ref) {
   const containerRef = useRef(null);
   const gridRef = useRef(null);
   const canvasRef = useRef(null);
@@ -2845,6 +2852,12 @@ export function ChartGrid({
   const requestRender = useCallback(() => {
     setRevision((value) => value + 1);
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    scrollToTop(options = {}) {
+      containerRef.current?.scrollTo({ ...options, top: 0 });
+    },
+  }), []);
 
   const {
     draftDrawing,
@@ -4302,6 +4315,6 @@ export function ChartGrid({
       ) : null}
     </div>
   );
-}
+});
 
 export { createSeries, createMockCharts };

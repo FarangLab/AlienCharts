@@ -151,6 +151,14 @@ Renders a responsive grid of charts. Commonly used props:
 | `disableDrawings` | `boolean` | `false` | Hide and disable drawing and moving-average tools. |
 | `onChartContextMenu` | `({ chart, event, point }) => void` | — | Called on chart right-click. Use it to render your own context menu. |
 
+Use a ref for imperative grid scrolling:
+
+```jsx
+const chartGridRef = useRef(null);
+chartGridRef.current?.scrollToTop();
+<ChartGrid ref={chartGridRef} charts={charts} />;
+```
+
 ## License
 
 [MIT](./LICENSE) © FarangLab

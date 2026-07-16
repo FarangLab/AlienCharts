@@ -1,4 +1,8 @@
-import type { MouseEvent as ReactMouseEvent, ReactElement } from "react";
+import type {
+  ForwardRefExoticComponent,
+  MouseEvent as ReactMouseEvent,
+  RefAttributes,
+} from "react";
 
 export type NumericArray =
   | number[]
@@ -165,6 +169,12 @@ export interface MockChartsOptions {
   pointCount?: number;
 }
 
-export function ChartGrid(props: ChartGridProps): ReactElement;
+export interface ChartGridHandle {
+  scrollToTop(options?: ScrollToOptions): void;
+}
+
+export const ChartGrid: ForwardRefExoticComponent<
+  ChartGridProps & RefAttributes<ChartGridHandle>
+>;
 export function createSeries(options: SeriesOptions): LineSeries;
 export function createMockCharts(options?: MockChartsOptions): Chart[];
