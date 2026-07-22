@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ChartGrid } from "../src/react/ChartGrid.jsx";
+import { ChartGrid } from "../src/react/index.js";
 import { createMockCharts } from "../src/core/mockData.js";
 
 const getCurrentTheme = () =>
@@ -38,7 +38,6 @@ function DemoPage({ Button, Input, Switch }) {
   const [mockRevision, setMockRevision] = useState(0);
   const [dataRevision, setDataRevision] = useState(0);
   const [appendedPoints, setAppendedPoints] = useState(0);
-  const [jumpToLatestRevision, setJumpToLatestRevision] = useState(0);
   const [theme, setTheme] = useState(getCurrentTheme);
   const [drawings, setDrawings] = useState([]);
   const [activeDrawingTool, setActiveDrawingTool] = useState(null);
@@ -53,6 +52,7 @@ function DemoPage({ Button, Input, Switch }) {
     return generated;
   });
   const chartsRef = useRef(charts);
+  const chartGridRef = useRef(null);
   const didMountRef = useRef(false);
 
   useEffect(() => {
@@ -114,7 +114,7 @@ function DemoPage({ Button, Input, Switch }) {
   };
 
   const jumpLatest = () => {
-    setJumpToLatestRevision((value) => value + 1);
+    chartGridRef.current?.jumpToLatest();
   };
 
   const createDrawingId = useCallback(
@@ -247,6 +247,7 @@ function DemoPage({ Button, Input, Switch }) {
       </div>
       <div className="min-h-0 flex-1">
         <ChartGrid
+          ref={chartGridRef}
           // antialiasLines
           activeDrawingTool={activeDrawingTool}
           backgroundColor={theme === "dark" ? "#101935" : "#f5f9ff"}
@@ -255,7 +256,6 @@ function DemoPage({ Button, Input, Switch }) {
           dataRevision={dataRevision}
           drawings={drawings}
           initialVisiblePoints={250000}
-          jumpToLatestRevision={jumpToLatestRevision}
           movingAverageByChart={movingAverageByChart}
           selectedDrawingId={selectedDrawingId}
           createDrawingId={createDrawingId}

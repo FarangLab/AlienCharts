@@ -63,6 +63,27 @@ export const createDraftDrawing = ({ chartId, type, start, end }) => ({
   style: getDefaultDrawingStyle(type),
 });
 
+const extendRayToPlotBoundary = (origin, through, plot) => {
+  const dx = through.x - origin.x;
+  const dy = through.y - origin.y;
+  if (Math.abs(dx) <= 0.000001 && Math.abs(dy) <= 0.000001) return through;
+
+  const candidates = [];
+  if (dx > 0.000001) candidates.push((plot.x + plot.width - origin.x) / dx);
+  else if (dx < -0.000001) candidates.push((plot.x - origin.x) / dx);
+  if (dy > 0.000001) candidates.push((plot.y + plot.height - origin.y) / dy);
+  else if (dy < -0.000001) candidates.push((plot.y - origin.y) / dy);
+
+  const boundaryScale = Math.min(
+    ...candidates.filter((scale) => Number.isFinite(scale) && scale >= 0),
+  );
+  const scale = Number.isFinite(boundaryScale) ? Math.max(1, boundaryScale) : 1;
+  return {
+    x: origin.x + dx * scale,
+    y: origin.y + dy * scale,
+  };
+};
+
 export const getDrawingGeometry = ({ drawing, layout, projectPoint }) => {
   if (!drawing?.start || !drawing?.end) return null;
   const start = projectPoint(drawing.start, layout);
@@ -96,24 +117,8 @@ export const getDrawingGeometry = ({ drawing, layout, projectPoint }) => {
       y: layout.plot.y + layout.plot.height,
     };
   } else if (drawing.type === "trendline") {
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    if (Math.abs(dx) > 0.000001) {
-      if (style.extendLeft) {
-        const leftX = layout.plot.x;
-        lineStart = {
-          x: leftX,
-          y: start.y + (dy / dx) * (leftX - start.x),
-        };
-      }
-      if (style.extendRight) {
-        const rightX = layout.plot.x + layout.plot.width;
-        lineEnd = {
-          x: rightX,
-          y: start.y + (dy / dx) * (rightX - start.x),
-        };
-      }
-    }
+    if (style.extendLeft) lineStart = extendRayToPlotBoundary(end, start, layout.plot);
+    if (style.extendRight) lineEnd = extendRayToPlotBoundary(start, end, layout.plot);
   }
 
   return { start, end, lineStart, lineEnd, style };

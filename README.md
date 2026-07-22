@@ -26,9 +26,7 @@ By rendering every series with WebGL, AlienCharts keeps dense chart grids smooth
 npm install aliencharts
 ```
 
-`react` and `react-dom` (v18+) are peer dependencies, so make sure they are installed in your app.
-
-AlienCharts ships its own self-contained stylesheet, import it once in your app:
+Import the self-contained stylesheet once:
 
 ```js
 import "aliencharts/styles.css";
@@ -36,129 +34,145 @@ import "aliencharts/styles.css";
 
 Dark mode follows a `.dark` class on any ancestor element (e.g. `<html class="dark">`).
 
-## Quick start
+## Vanilla Web
 
-Build an array of `charts`, where each chart has an `id`, a `title`, and one or more `series` created with `createSeries`. Pass them to `<ChartGrid>`:
+```html
+<div id="charts" style="height: 100vh"></div>
+```
+
+```js
+import "aliencharts/styles.css";
+import { createChartGrid, createSeries } from "aliencharts/vanilla";
+
+const series = createSeries({
+  id: "run-1",
+  name: "Run 1",
+  color: "#38bdf8",
+  x: [0, 1, 2, 3, 4],
+  y: [2.5, 1.9, 1.4, 1.1, 0.9],
+});
+
+const grid = createChartGrid(document.querySelector("#charts"), {
+  charts: [{ id: "loss", title: "train/loss", series: [series] }],
+  columns: 2,
+});
+
+// Stream data into an existing series and schedule a render.
+series.append([5, 6], [0.8, 0.72]);
+grid.invalidate();
+
+grid.setOptions({ columns: 3, followLatest: true });
+grid.jumpToLatest();
+
+// Release DOM listeners, observers, animation frames, and WebGL resources.
+grid.destroy();
+```
+
+`createChartGrid()` returns:
+
+| Method | Description |
+| --- | --- |
+| `setOptions(partialOptions)` | Update formatting, controls, callbacks, state, or layout. |
+| `setCharts(charts)` | Replace the chart array and reconcile chart/GPU state. |
+| `invalidate()` | Notify the grid after appending or mutating series data. |
+| `jumpToLatest(chartId?)` | Move one chart, or every chart, to its latest values. |
+| `scrollToTop(options?)` | Scroll the grid container to the top. |
+| `destroy()` | Dispose the controller. |
+
+See the [Vanilla Web example source](https://github.com/FarangLab/AlienCharts/blob/main/examples/vanilla.js) for a more complete setup.
+
+## React
+
+If you use React in your application, import the React entry point:
 
 ```jsx
+import { useRef, useState } from "react";
 import "aliencharts/styles.css";
-import { ChartGrid, createSeries } from "aliencharts";
+import { ChartGrid, createSeries } from "aliencharts/react";
 
-const charts = [
-  {
-    id: "loss",
-    title: "train/loss",
-    series: [
-      createSeries({
-        id: "run-1",
-        name: "Run 1",
-        color: "#38bdf8",
-        x: [0, 1, 2, 3, 4],
-        y: [2.5, 1.9, 1.4, 1.1, 0.9],
-      }),
-    ],
-  },
-];
+const series = createSeries({
+  id: "run-1",
+  x: [0, 1, 2, 3, 4],
+  y: [2.5, 1.9, 1.4, 1.1, 0.9],
+});
 
 export default function Dashboard() {
-  return <ChartGrid charts={charts} columns={2} />;
-}
-```
+  const gridRef = useRef(null);
+  const [dataRevision, setDataRevision] = useState(0);
 
-For a fuller example, including live appending and theming — see [`examples/DemoPage.jsx`](./examples/DemoPage.jsx).
-
-### Drawings
-
-Drawings are controlled by your app. Keep the drawing array and active tool in state, then pass that state into `ChartGrid`:
-
-```jsx
-import { useCallback, useState } from "react";
-import { ChartGrid } from "aliencharts";
-
-export default function Dashboard({ charts }) {
-  const [drawings, setDrawings] = useState([]);
-  const [activeDrawingTool, setActiveDrawingTool] = useState(null);
-  const [selectedDrawingId, setSelectedDrawingId] = useState(null);
-
-  const createDrawingId = useCallback(
-    ({ chartId, type }) => `${chartId}:${type}:${crypto.randomUUID()}`,
-    [],
-  );
+  const append = () => {
+    series.append([series.length], [Math.random()]);
+    setDataRevision((value) => value + 1);
+  };
 
   return (
-    <ChartGrid
-      charts={charts}
-      drawings={drawings}
-      onDrawingsChange={setDrawings}
-      activeDrawingTool={activeDrawingTool}
-      onActiveDrawingToolChange={setActiveDrawingTool}
-      selectedDrawingId={selectedDrawingId}
-      onSelectedDrawingIdChange={setSelectedDrawingId}
-      createDrawingId={createDrawingId}
-    />
+    <div style={{ height: "100vh" }}>
+      <button onClick={append}>Append</button>
+      <ChartGrid
+        ref={gridRef}
+        charts={[{ id: "loss", title: "train/loss", series: [series] }]}
+        dataRevision={dataRevision}
+      />
+    </div>
   );
 }
 ```
 
-Supported drawing tools are `"trendline"`, `"hline"`, `"vline"`, and `"pin"`. Since drawings live outside the component, you can persist them however you want, such as local storage, a database, or app state.
+See the [React demo source](https://github.com/FarangLab/AlienCharts/blob/main/examples/DemoPage.jsx) for a larger controlled-state example.
 
-Set `disableDrawings` when you want a read-only chart toolbar without drawing or moving-average tools.
+## Shared data API
 
-## API
+Framework-neutral data helpers are also available from the package root:
 
-### `createSeries(options)`
-
-Creates a line series.
-
-| Option | Type | Description |
-| --- | --- | --- |
-| `id` | `string` | Unique series id. |
-| `name` | `string` | Display name (defaults to `id`). |
-| `color` | `string` | CSS color of the line (defaults to `#38bdf8`). |
-| `x` | `number[] \| Float64Array` | X values (e.g. step / time). |
-| `y` | `number[] \| Float32Array` | Y values. |
-
-The returned series has an `append(xValues, yValues)` method for streaming in new points.
-
-### `createMockCharts(options?)`
-
-Generates an array of charts with synthetic data for demos and benchmarking. Options: `chartCount`, `seriesPerChart`, `pointCount`.
-
-### `<ChartGrid>`
-
-Renders a responsive grid of charts. Commonly used props:
-
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `charts` | `Chart[]` | — | Charts to render. Each is `{ id, title, series }`. |
-| `columns` | `number` | `2` | Number of columns in the grid. |
-| `dataRevision` | `number` | `0` | Bump this after appending points to trigger a re-render. |
-| `followLatest` | `boolean` | `false` | Keep the view pinned to the newest data. |
-| `xAxisLabel` | `string` | `"STEP"` | Label shown on the x-axis. |
-| `backgroundColor` | `string` | — | Chart background color. |
-| `antialiasLines` | `boolean` | `false` | Enable line antialiasing. |
-| `gridLines` | `boolean \| { xSpacing?: number, ySpacing?: number }` | `false` | Show plot grid lines. Pass an object to configure pixel spacing (defaults to `80` x `48`). |
-| `showToolbar` | `boolean` | `true` | Show the toolbar on the focused chart. |
-| `showLatestValueLine` | `boolean` | `true` | Show the partial dashed line between the latest point and its Y-axis label. |
-| `showTooltips` | `boolean` | `true` | Show the crosshair, nearest-point markers, and tooltip. |
-| `drawings` | `Drawing[]` | `[]` | Controlled drawing objects. |
-| `onDrawingsChange` | `(drawings) => void` | — | Called when drawings are created, edited, deleted, or styled. |
-| `activeDrawingTool` | `"trendline" \| "hline" \| "vline" \| "pin" \| null` | `null` | Controlled active drawing tool. |
-| `onActiveDrawingToolChange` | `(tool) => void` | — | Called when the toolbar or hotkeys change the active drawing tool. |
-| `selectedDrawingId` | `string \| null` | `null` | Controlled selected drawing id. |
-| `onSelectedDrawingIdChange` | `(id) => void` | — | Called when a drawing is selected or deselected. |
-| `createDrawingId` | `({ chartId, type }) => string` | — | Optional id factory for new drawings. |
-| `disableDrawings` | `boolean` | `false` | Hide and disable drawing and moving-average tools. |
-| `onChartContextMenu` | `({ chart, event, point }) => void` | — | Called on chart right-click. Use it to render your own context menu. |
-
-Use a ref for imperative grid scrolling:
-
-```jsx
-const chartGridRef = useRef(null);
-chartGridRef.current?.scrollToTop();
-<ChartGrid ref={chartGridRef} charts={charts} />;
+```js
+import { createSeries, createMockCharts, LineSeries } from "aliencharts";
 ```
+
+`createSeries(options)` accepts an id, optional name/color, X/Y arrays or typed arrays, and an optional maximum LOD level count. Its `append(xValues, yValues)` method efficiently extends the typed backing arrays.
+
+Charts have the shape `{ id, title, series }` and may additionally define `pinned` and a fixed `{ min, max }` Y range.
+
+## Common options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `charts` | required | Chart objects to render. |
+| `columns` | `2` | Responsive grid column count. |
+| `initialVisiblePoints` | all | Initial X window size. |
+| `backgroundColor` | `#f5f9ff` | Chart background. |
+| `antialiasLines` | `false` | GPU-expanded antialiased lines. |
+| `gridLines` | `false` | Boolean or `{ xSpacing, ySpacing }`. |
+| `showToolbar` | `true` | Focused-chart toolbar. |
+| `showLatestValueLine` | `true` | Latest value connector and label. |
+| `showTooltips` | `true` | Crosshair and nearest-value tooltip. |
+| `followLatest` | `false` | Always follow appended values. |
+| `followVisibleLatest` | `true` | Follow appends when the latest point was visible. |
+| `drawings` | `[]` | Initial or replacement drawing state. |
+| `movingAverageByChart` | `{}` | Moving-average state keyed by chart id. |
+| `topMarkers` | `[]` | Clickable markers positioned by `x` or `step`. |
+| `disableDrawings` | `false` | Disable drawing and moving-average controls. |
+
+Drawing, selection, active-tool, moving-average, marker, clearing, and context-menu callbacks work in both entry points. The controller updates its own state before emitting change callbacks; passing an explicit replacement through `setOptions()` or React props synchronizes external state back into it.
+
+Supported drawing tools are `trendline`, `hline`, `vline`, and `pin`. Context-menu payloads contain `{ chart, event, point }`, where `event` is a native `MouseEvent` and `point` is the data coordinate when the click is inside the plot.
+
+## Examples
+
+The example files are development examples in the repository and are not included in the installed npm package. From a cloned repository, run:
+
+```bash
+npm install
+npm run build
+npm run examples
+```
+
+Then open:
+
+- Vanilla Web: <http://127.0.0.1:4178/examples/vanilla.html>
+- React: <http://127.0.0.1:4178/examples/react.html>
 
 ## License
 
-[MIT](./LICENSE) © FarangLab
+[MIT](./LICENSE) © FarangLab.
+
+Bundled Phosphor SVG paths are covered by the notice in [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md).

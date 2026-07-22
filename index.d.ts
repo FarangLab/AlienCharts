@@ -1,9 +1,3 @@
-import type {
-  ForwardRefExoticComponent,
-  MouseEvent as ReactMouseEvent,
-  RefAttributes,
-} from "react";
-
 export type NumericArray =
   | number[]
   | Float32Array
@@ -109,8 +103,8 @@ export interface TopMarker<T = unknown> {
 
 export interface ChartContextMenuPayload {
   chart: Chart;
-  event: ReactMouseEvent<HTMLDivElement>;
-  point: DataPoint;
+  event: MouseEvent;
+  point: DataPoint | null;
 }
 
 export interface CreateDrawingIdPayload {
@@ -118,11 +112,9 @@ export interface CreateDrawingIdPayload {
   type: DrawingTool;
 }
 
-export interface ChartGridProps {
+export interface ChartGridOptions {
   charts: Chart[];
   columns?: number;
-  className?: string;
-  dataRevision?: number;
   initialVisiblePoints?: number | null;
   backgroundColor?: string;
   antialiasLines?: boolean;
@@ -137,7 +129,6 @@ export interface ChartGridProps {
   showTooltips?: boolean;
   followLatest?: boolean;
   followVisibleLatest?: boolean;
-  jumpToLatestRevision?: number;
   drawings?: Drawing[];
   onDrawingsChange?: (drawings: Drawing[]) => void;
   activeDrawingTool?: DrawingTool | null;
@@ -169,12 +160,5 @@ export interface MockChartsOptions {
   pointCount?: number;
 }
 
-export interface ChartGridHandle {
-  scrollToTop(options?: ScrollToOptions): void;
-}
-
-export const ChartGrid: ForwardRefExoticComponent<
-  ChartGridProps & RefAttributes<ChartGridHandle>
->;
 export function createSeries(options: SeriesOptions): LineSeries;
 export function createMockCharts(options?: MockChartsOptions): Chart[];

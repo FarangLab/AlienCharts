@@ -1,5 +1,2 @@
-export {
-  ChartGrid,
-  createSeries,
-  createMockCharts,
-} from "./react/ChartGrid.jsx";
+export { LineSeries, createSeries } from "./core/lodSeries.js";
+export { createMockCharts } from "./core/mockData.js";
