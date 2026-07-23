@@ -976,8 +976,12 @@ class ChartGridController {
         );
         this.viewStates.set(chart.id, { xMin: center - span / 2, xMax: center + span / 2 });
       }
-      if (this.drag.type === "pan") this.updateCrosshair(point, layout);
-      else this.requestRender();
+      if (this.drag.type === "pan") {
+        this.updateCrosshair(point, layout);
+        this.requestRender();
+      } else {
+        this.requestRender();
+      }
       return;
     }
     this.updateCrosshair(point, layout, context.fullscreen);
