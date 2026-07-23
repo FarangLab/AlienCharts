@@ -70,6 +70,15 @@ const APPEND_ANIMATION = Object.freeze({
   maxBucketSize: 64,
   maxRevealPoints: 100,
 });
+const POINTER_SCALE_SENSITIVITY = 0.01;
+const WHEEL_SCALE_SENSITIVITY = 0.001;
+
+const scaleValueRange = (scale, delta, sensitivity) =>
+  clamp(
+    scale * Math.exp(delta * sensitivity),
+    Y_SCALE_MIN,
+    Y_SCALE_MAX,
+  );
 
 const escapeHtml = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -941,7 +950,14 @@ class ChartGridController {
           plot,
         });
         const delta = transform.valueScaleDelta(this.drag.start, point);
-        this.yScales.set(chart.id, clamp(this.drag.scale * Math.exp(delta * 0.01), Y_SCALE_MIN, Y_SCALE_MAX));
+        this.yScales.set(
+          chart.id,
+          scaleValueRange(
+            this.drag.scale,
+            delta,
+            POINTER_SCALE_SENSITIVITY,
+          ),
+        );
       }
       if (this.drag.type === "x-scale") {
         const center = (this.drag.state.xMin + this.drag.state.xMax) / 2;
@@ -1006,6 +1022,20 @@ class ChartGridController {
     const inPlot = point.x >= layout.plot.x && point.x <= layout.plot.x + layout.plot.width && point.y >= layout.plot.y && point.y <= layout.plot.y + layout.plot.height;
     if (!inPlot) return;
     event.preventDefault();
+    if (event.shiftKey) {
+      const wheelDelta = event.deltaY || event.deltaX;
+      const currentScale = this.yScales.get(layout.chart.id) || 1;
+      this.yScales.set(
+        layout.chart.id,
+        scaleValueRange(
+          currentScale,
+          wheelDelta,
+          WHEEL_SCALE_SENSITIVITY,
+        ),
+      );
+      this.requestRender();
+      return;
+    }
     const state = this.viewStates.get(layout.chart.id);
     const range = this.getRange(layout, state);
     const ratio = clamp(

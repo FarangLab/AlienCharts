@@ -11,6 +11,31 @@ test("vanilla renders, updates, interacts, and cleans up", async ({ page }) => {
 
   await page.locator("[data-chart-index]").first().click({ position: { x: 150, y: 120 } });
   await expect(page.getByRole("button", { name: "Maximize chart" })).toBeVisible();
+  const initialLineView = await page.evaluate(() => {
+    const { controller } = window.alienchartsExample;
+    const state = controller.viewStates.get("loss");
+    return {
+      scale: controller.yScales.get("loss"),
+      span: state.xMax - state.xMin,
+    };
+  });
+  await page.locator("[data-chart-index]").first().hover({
+    position: { x: 300, y: 160 },
+  });
+  await page.keyboard.down("Shift");
+  await page.mouse.wheel(0, -400);
+  await page.keyboard.up("Shift");
+  await expect.poll(() => page.evaluate(() =>
+    window.alienchartsExample.controller.yScales.get("loss"),
+  )).toBeLessThan(initialLineView.scale);
+  const lineViewAfterVerticalZoom = await page.evaluate(() => {
+    const state = window.alienchartsExample.controller.viewStates.get("loss");
+    return state.xMax - state.xMin;
+  });
+  expect(lineViewAfterVerticalZoom).toBeCloseTo(initialLineView.span, 5);
+  await page.evaluate(() =>
+    window.alienchartsExample.controller.resetChart("loss"),
+  );
   await page.getByRole("button", { name: "Toggle moving average" }).click();
   await expect.poll(() => page.evaluate(() => window.alienchartsExample.events.some(([name]) => name === "moving-average"))).toBeTruthy();
   await page.locator("[data-moving-period]").fill("34");
@@ -201,6 +226,36 @@ test("GPU bar charts render and interact in both orientations", async ({ page })
       .get("horizontal-bars");
     return state.xMax - state.xMin;
   })).toBeCloseTo(initialSpan, 5);
+
+  for (const [index, chartId] of [
+    [0, "vertical-bars"],
+    [1, "horizontal-bars"],
+  ]) {
+    const initialView = await page.evaluate((id) => {
+      const { controller } = window.alienchartsBarsExample;
+      const state = controller.viewStates.get(id);
+      return {
+        scale: controller.yScales.get(id),
+        span: state.xMax - state.xMin,
+      };
+    }, chartId);
+    const box = await cells.nth(index).boundingBox();
+    await page.mouse.move(box.x + 220, box.y + 150);
+    await page.keyboard.down("Shift");
+    await page.mouse.wheel(0, -400);
+    await page.keyboard.up("Shift");
+    await expect.poll(() => page.evaluate((id) =>
+      window.alienchartsBarsExample.controller.yScales.get(id),
+    chartId)).toBeLessThan(initialView.scale);
+    const categorySpan = await page.evaluate((id) => {
+      const state = window.alienchartsBarsExample.controller.viewStates.get(id);
+      return state.xMax - state.xMin;
+    }, chartId);
+    expect(categorySpan).toBeCloseTo(initialView.span, 5);
+    await page.evaluate((id) =>
+      window.alienchartsBarsExample.controller.resetChart(id),
+    chartId);
+  }
 
   await page.getByRole("button", { name: "Maximize chart" }).click();
   await expect(page.locator("[data-aliencharts-fullscreen]")).toBeVisible();
