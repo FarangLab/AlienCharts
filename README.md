@@ -7,7 +7,7 @@ GPU-rendered chart grid for multi-metric dashboards — such as monitoring AI tr
 
 By rendering every series with WebGL, AlienCharts keeps dense chart grids smooth where SVG/Canvas libraries stall.
 
-> **Note:** AlienCharts currently supports **line charts** only. Other chart types may be added in the future.
+> **Note:** AlienCharts currently supports **line charts** and **bar charts**. Other chart types may be added in the future.
 
 ![AlienCharts chart grid example](./assets/chartgrid.png)
 
@@ -42,9 +42,9 @@ Dark mode follows a `.dark` class on any ancestor element (e.g. `<html class="da
 
 ```js
 import "aliencharts/styles.css";
-import { createChartGrid, createSeries } from "aliencharts/vanilla";
+import { createChartGrid, createLineSeries } from "aliencharts/vanilla";
 
-const series = createSeries({
+const series = createLineSeries({
   id: "run-1",
   name: "Run 1",
   color: "#38bdf8",
@@ -88,9 +88,9 @@ If you use React in your application, import the React entry point:
 ```jsx
 import { useRef, useState } from "react";
 import "aliencharts/styles.css";
-import { ChartGrid, createSeries } from "aliencharts/react";
+import { ChartGrid, createLineSeries } from "aliencharts/react";
 
-const series = createSeries({
+const series = createLineSeries({
   id: "run-1",
   x: [0, 1, 2, 3, 4],
   y: [2.5, 1.9, 1.4, 1.1, 0.9],
@@ -120,37 +120,93 @@ export default function Dashboard() {
 
 See the [React demo source](https://github.com/FarangLab/AlienCharts/blob/main/examples/DemoPage.jsx) for a larger controlled-state example.
 
-## Shared data API
+## Data API
 
 Framework-neutral data helpers are also available from the package root:
 
+### Line series
+
 ```js
-import { createSeries, createMockCharts, LineSeries } from "aliencharts";
+import { createLineSeries, createMockCharts, LineSeries } from "aliencharts";
 ```
 
-`createSeries(options)` accepts an id, optional name/color, X/Y arrays or typed arrays, and an optional maximum LOD level count. Its `append(xValues, yValues)` method efficiently extends the typed backing arrays.
+`createLineSeries(options)` accepts an id, optional name/color, X/Y arrays or typed arrays, and an optional maximum LOD level count. Its `append(xValues, yValues)` method efficiently extends the typed backing arrays. The existing `createSeries(options)` API remains available as a backward-compatible alias.
 
-Charts have the shape `{ id, title, series }` and may additionally define `pinned` and a fixed `{ min, max }` Y range.
+### Bar series
 
-## Common options
+Use `createBarSeries()` for grouped GPU-rendered bars. The data meaning is the
+same in both orientations: `x` is the numeric category position and `y` is the
+value.
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `charts` | required | Chart objects to render. |
-| `columns` | `2` | Responsive grid column count. |
-| `initialVisiblePoints` | all | Initial X window size. |
-| `backgroundColor` | `#f5f9ff` | Chart background. |
-| `antialiasLines` | `false` | GPU-expanded antialiased lines. |
-| `gridLines` | `false` | Boolean or `{ xSpacing, ySpacing }`. |
-| `showToolbar` | `true` | Focused-chart toolbar. |
-| `showLatestValueLine` | `true` | Latest value connector and label. |
-| `showTooltips` | `true` | Crosshair and nearest-value tooltip. |
-| `followLatest` | `false` | Always follow appended values. |
-| `followVisibleLatest` | `true` | Follow appends when the latest point was visible. |
-| `drawings` | `[]` | Initial or replacement drawing state. |
-| `movingAverageByChart` | `{}` | Moving-average state keyed by chart id. |
-| `topMarkers` | `[]` | Clickable markers positioned by `x` or `step`. |
-| `disableDrawings` | `false` | Disable drawing and moving-average controls. |
+```js
+import { createBarSeries } from "aliencharts";
+
+const vertical = createBarSeries({
+  id: "revenue",
+  x: [0, 1, 2, 3],
+  y: [12, 18, -4, 25],
+});
+
+const horizontal = createBarSeries({
+  id: "latency",
+  orientation: "horizontal",
+  x: [0, 1, 2, 3],
+  y: [40, 65, 32, 80],
+});
+```
+
+Multiple bar series in one chart are grouped in series order. Every series in a
+chart must use the same orientation.
+
+## Chart configuration
+
+Charts have the shape `{ id, title, series }` and may additionally define
+`pinned`, `categories`, and a fixed `{ min, max }` Y range.
+
+### Categories
+
+Add `categories` to the chart to display text labels at bar positions. String
+entries use their array index as the numeric X value:
+
+```js
+const models = ["Gemini 3.5", "GPT-5.6", "Claude 4.5"];
+
+const chart = {
+  id: "model-scores",
+  title: "Model scores",
+  categories: models,
+  series: [createBarSeries({
+    id: "score",
+    x: models.map((_, index) => index),
+    y: [82, 91, 87],
+  })],
+};
+```
+
+For sparse or non-indexed numeric X values, use
+`{ value: number, label: string }` entries instead.
+
+### Common options
+
+| Option | Default | Chart types | Description |
+| --- | --- | --- | --- |
+| `charts` | required | Line, Bar | Chart objects to render. |
+| `columns` | `2` | Line, Bar | Responsive grid column count. |
+| `initialVisiblePoints` | all | Line, Bar | Initial X window size. |
+| `backgroundColor` | `#f5f9ff` | Line, Bar | Chart background. |
+| `antialiasLines` | `false` | Line | GPU-expanded antialiased lines. |
+| `gridLines` | `false` | Line, Bar | Boolean or `{ xSpacing, ySpacing }`. |
+| `showToolbar` | `true` | Line, Bar | Focused-chart toolbar. |
+| `showLatestValueLine` | `true` | Line | Latest value connector and label. |
+| `showTooltips` | `true` | Line, Bar | Crosshair and nearest-value tooltip. |
+| `followLatest` | `false` | Line, Bar | Always follow appended values. |
+| `followVisibleLatest` | `true` | Line, Bar | Follow appends when the latest point was visible. |
+| `drawings` | `[]` | Line | Initial or replacement drawing state. |
+| `movingAverageByChart` | `{}` | Line | Moving-average state keyed by chart id. |
+| `topMarkers` | `[]` | Line | Clickable markers positioned by `x` or `step`. |
+| `disableDrawings` | `false` | Line | Disable drawing and moving-average controls. |
+
+### Drawings and callbacks
 
 Drawing, selection, active-tool, moving-average, marker, clearing, and context-menu callbacks work in both entry points. The controller updates its own state before emitting change callbacks; passing an explicit replacement through `setOptions()` or React props synchronizes external state back into it.
 
@@ -170,6 +226,7 @@ Then open:
 
 - Vanilla Web: <http://127.0.0.1:4178/examples/vanilla.html>
 - React: <http://127.0.0.1:4178/examples/react.html>
+- Bar charts: <http://127.0.0.1:4178/examples/bars.html>
 
 ## License
 

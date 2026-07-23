@@ -87,7 +87,7 @@ const concatTyped = (Type, left, right) => {
   return out;
 };
 
-export class LineSeries {
+class LodSeries {
   constructor({ id, name, color, x, y, maxLevels = DEFAULT_MAX_LEVELS }) {
     this.id = id;
     this.name = name || id;
@@ -229,4 +229,26 @@ export class LineSeries {
   }
 }
 
-export const createSeries = (options) => new LineSeries(options);
+export class LineSeries extends LodSeries {
+  constructor(options) {
+    super(options);
+    this.type = "line";
+  }
+}
+
+export class BarSeries extends LodSeries {
+  constructor({ orientation = "vertical", ...options }) {
+    super(options);
+    if (orientation !== "vertical" && orientation !== "horizontal") {
+      throw new TypeError(
+        'BarSeries orientation must be "vertical" or "horizontal"',
+      );
+    }
+    this.type = "bar";
+    this.orientation = orientation;
+  }
+}
+
+export const createLineSeries = (options) => new LineSeries(options);
+export const createSeries = createLineSeries;
+export const createBarSeries = (options) => new BarSeries(options);

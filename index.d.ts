@@ -33,6 +33,34 @@ export class LineSeries {
   name: string;
   color: string;
   maxLevels: number;
+  readonly type: "line";
+  readonly length: number;
+  rawX: Float64Array;
+  rawY: Float32Array;
+
+  append(xValues: NumericArray, yValues: NumericArray): void;
+  getVisiblePoints(
+    xMin: number,
+    xMax: number,
+    pixelWidth: number,
+  ): VisibleSeriesPoints;
+}
+
+export type BarOrientation = "vertical" | "horizontal";
+
+export interface BarSeriesOptions extends SeriesOptions {
+  orientation?: BarOrientation;
+}
+
+export class BarSeries {
+  constructor(options: BarSeriesOptions);
+
+  id: string;
+  name: string;
+  color: string;
+  maxLevels: number;
+  readonly type: "bar";
+  readonly orientation: BarOrientation;
   readonly length: number;
   rawX: Float64Array;
   rawY: Float32Array;
@@ -48,13 +76,19 @@ export class LineSeries {
 export interface Chart {
   id: string;
   title: string;
-  series: LineSeries[];
+  series: LineSeries[] | BarSeries[];
+  categories?: Array<string | ChartCategory>;
   pinned?: boolean;
   yRange?: {
     min: number;
     max: number;
   };
   [key: string]: unknown;
+}
+
+export interface ChartCategory {
+  value: number;
+  label: string;
 }
 
 export interface DataPoint {
@@ -160,5 +194,8 @@ export interface MockChartsOptions {
   pointCount?: number;
 }
 
+export function createLineSeries(options: SeriesOptions): LineSeries;
+/** @deprecated Use createLineSeries for explicit line-series naming. */
 export function createSeries(options: SeriesOptions): LineSeries;
+export function createBarSeries(options: BarSeriesOptions): BarSeries;
 export function createMockCharts(options?: MockChartsOptions): Chart[];

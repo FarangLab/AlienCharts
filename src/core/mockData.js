@@ -1,4 +1,4 @@
-import { createSeries } from "./lodSeries.js";
+import { createLineSeries } from "./lodSeries.js";
 
 const palette = [
   "#38bdf8",
@@ -49,7 +49,7 @@ const makeSeries = ({ chartIndex, seriesIndex, pointCount }) => {
     y[i] = value;
   }
 
-  return createSeries({
+  return createLineSeries({
     id: `chart-${chartIndex}-series-${seriesIndex}`,
     name: `Run ${seriesIndex + 1}`,
     color: palette[(chartIndex + seriesIndex) % palette.length],

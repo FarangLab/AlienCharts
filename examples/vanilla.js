@@ -1,7 +1,7 @@
 import "../dist/aliencharts.css";
-import { createChartGrid, createSeries } from "../src/vanilla/index.js";
+import { createChartGrid, createLineSeries } from "../src/vanilla/index.js";
 
-const makeSeries = (id, offset = 0) => createSeries({
+const makeSeries = (id, offset = 0) => createLineSeries({
   id,
   name: id,
   color: offset ? "#22c55e" : "#38bdf8",

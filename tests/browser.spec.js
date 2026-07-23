@@ -74,6 +74,52 @@ test("vanilla renders, updates, interacts, and cleans up", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("zoomed drawings are clipped to their owning chart plot", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/examples/vanilla.html");
+  const cells = page.locator("[data-chart-index]");
+  const firstCell = await cells.first().boundingBox();
+  const secondCell = await cells.nth(1).boundingBox();
+
+  await page.evaluate(() => {
+    const { controller } = window.alienchartsExample;
+    controller.setOptions({
+      drawings: [{
+        id: "offscreen-vline",
+        chartId: "loss",
+        type: "vline",
+        start: { x: 30, y: 0 },
+        end: { x: 30, y: 0 },
+      }],
+    });
+    controller.viewStates.set("loss", { xMin: 0, xMax: 20 });
+    controller.requestRender();
+  });
+
+  const line = page.locator('[data-drawing-chart="loss"] [data-drawing-line]');
+  await expect(line).toHaveCount(1);
+  const projectedX = Number(await line.getAttribute("x1"));
+  expect(projectedX).toBeGreaterThan(secondCell.x);
+  expect(projectedX).toBeLessThan(secondCell.x + secondCell.width);
+
+  const drawingGroup = page.locator('[data-drawing-chart="loss"]');
+  await expect(drawingGroup).toHaveAttribute(
+    "clip-path",
+    /drawing-clip-grid/,
+  );
+  const clipRect = page.locator('[data-drawing-clip="loss"]');
+  const clip = await clipRect.evaluate((node) => ({
+    x: Number(node.getAttribute("x")),
+    width: Number(node.getAttribute("width")),
+  }));
+  expect(clip.x).toBeGreaterThanOrEqual(firstCell.x);
+  expect(clip.x + clip.width).toBeLessThanOrEqual(
+    firstCell.x + firstCell.width,
+  );
+  expect(errors).toEqual([]);
+});
+
 test("React adapter survives Strict Mode and synchronizes updates", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -84,5 +130,153 @@ test("React adapter survives Strict Mode and synchronizes updates", async ({ pag
   await page.evaluate(() => window.reactAlienchartsExample.setColumns(1));
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector("[data-chart-index]").parentElement).gridTemplateColumns.split(" ").length)).toBe(1);
   await expect(page.locator("[data-chart-index]")).toHaveCount(4);
+  expect(errors).toEqual([]);
+});
+
+test("GPU bar charts render and interact in both orientations", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/examples/bars.html");
+  const cells = page.locator("[data-chart-index]");
+  await expect(cells).toHaveCount(2);
+  await expect(page.getByText("Vertical grouped bars")).toBeVisible();
+  await expect(page.getByText("Horizontal grouped bars")).toBeVisible();
+
+  const gpuError = await page.evaluate(async () => {
+    await new Promise((resolve) => requestAnimationFrame(() =>
+      requestAnimationFrame(resolve)));
+    const canvas = document.querySelector("canvas");
+    const gl = canvas.getContext("webgl2");
+    gl.finish();
+    return gl.getError();
+  });
+  expect(gpuError).toBe(0);
+  const canvasImage = await page.locator("canvas").screenshot();
+  expect(canvasImage.byteLength).toBeGreaterThan(5000);
+
+  const horizontalCategoryAxis = cells.nth(1).locator("[data-x-axis]");
+  const horizontalValueAxis = cells.nth(1).locator("[data-y-axis]");
+  await expect(horizontalCategoryAxis).toHaveCSS("left", "0px");
+  await expect(horizontalCategoryAxis).toHaveCSS("width", "128px");
+  await expect(horizontalValueAxis).toHaveCSS("bottom", "0px");
+  await expect(cells.first().locator("[data-category-label]")).toHaveCount(6);
+  await expect(cells.nth(1).locator("[data-category-label]")).toHaveCount(6);
+  await expect(
+    cells.nth(1).locator("[data-category-label]", { hasText: "Gemini 3.5" }),
+  ).toBeVisible();
+
+  await cells.first().hover({ position: { x: 220, y: 150 } });
+  await expect(page.locator("[data-crosshair-tooltip]")).toBeVisible();
+  await expect(page.getByText("Vertical A")).toBeVisible();
+  await expect(page.locator("[data-crosshair-tooltip]")).toContainText(
+    /STEP: (Gemini 3\.5|GPT-5\.6|Claude 4\.5|Llama 4|Mistral Large|Command R\+)/,
+  );
+
+  await cells.nth(1).hover({ position: { x: 220, y: 150 } });
+  await expect(page.getByText("Horizontal A")).toBeVisible();
+  await cells.nth(1).click({ position: { x: 220, y: 150 } });
+  await expect(page.getByRole("button", { name: "Maximize chart" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Draw trendline" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Toggle moving average" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Hidden marker" })).toHaveCount(0);
+  await expect(page.locator("[data-drawing-line]")).toHaveCount(0);
+  await expect(page.locator("[data-latest-lines] > *")).toHaveCount(0);
+
+  const initialSpan = await page.evaluate(() => {
+    const state = window.alienchartsBarsExample.controller.viewStates
+      .get("horizontal-bars");
+    return state.xMax - state.xMin;
+  });
+  const horizontalBox = await cells.nth(1).boundingBox();
+  await page.mouse.move(horizontalBox.x + 220, horizontalBox.y + 150);
+  await page.mouse.wheel(0, -400);
+  await expect.poll(() => page.evaluate(() => {
+    const state = window.alienchartsBarsExample.controller.viewStates
+      .get("horizontal-bars");
+    return state.xMax - state.xMin;
+  })).toBeLessThan(initialSpan);
+  await page.getByRole("button", { name: "Reset chart" }).click();
+  await expect.poll(() => page.evaluate(() => {
+    const state = window.alienchartsBarsExample.controller.viewStates
+      .get("horizontal-bars");
+    return state.xMax - state.xMin;
+  })).toBeCloseTo(initialSpan, 5);
+
+  await page.getByRole("button", { name: "Maximize chart" }).click();
+  await expect(page.locator("[data-aliencharts-fullscreen]")).toBeVisible();
+  await page.getByRole("button", { name: "Exit fullscreen" }).click();
+  await expect(page.locator("[data-aliencharts-fullscreen]")).toHaveCount(0);
+
+  const previousMax = await page.evaluate(() =>
+    window.alienchartsBarsExample.controller.viewStates
+      .get("horizontal-bars").xMax);
+  await page.evaluate(() => window.alienchartsBarsExample.append());
+  await expect.poll(() =>
+    page.evaluate(() =>
+      window.alienchartsBarsExample.charts[0].series[0].length),
+  ).toBe(7);
+  await expect(
+    cells.nth(1).locator("[data-category-label]", { hasText: "Nova Pro" }),
+  ).toBeVisible();
+  await expect.poll(() => page.evaluate(() =>
+    window.alienchartsBarsExample.controller.viewStates
+      .get("horizontal-bars").xMax),
+  ).toBeGreaterThan(previousMax);
+
+  const validationMessage = await page.evaluate(() => {
+    try {
+      window.alienchartsBarsExample.validateMixedChart();
+      return "";
+    } catch (error) {
+      return error.message;
+    }
+  });
+  expect(validationMessage).toContain("cannot mix line and bar series");
+  const orientationMessage = await page.evaluate(() => {
+    try {
+      window.alienchartsBarsExample.validateMixedOrientation();
+      return "";
+    } catch (error) {
+      return error.message;
+    }
+  });
+  expect(orientationMessage).toContain("cannot mix bar orientations");
+  expect(errors).toEqual([]);
+});
+
+test("line and bar renderers safely alternate on one antialiased surface", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto("/examples/mixed.html");
+  const cells = page.locator("[data-chart-index]");
+  await expect(cells).toHaveCount(4);
+  await expect(page.getByText("line-first", { exact: true })).toBeVisible();
+  await expect(page.getByText("bar-fourth", { exact: true })).toBeVisible();
+
+  const assertGpuSurface = async () => {
+    const gpuError = await page.evaluate(async () => {
+      await new Promise((resolve) => requestAnimationFrame(() =>
+        requestAnimationFrame(resolve)));
+      const gl = document.querySelector("canvas").getContext("webgl2");
+      gl.finish();
+      return gl.getError();
+    });
+    expect(gpuError).toBe(0);
+    const image = await page.locator("canvas").screenshot();
+    expect(image.byteLength).toBeGreaterThan(8000);
+  };
+
+  await assertGpuSurface();
+  await cells.nth(2).hover({ position: { x: 220, y: 140 } });
+  await expect(page.getByText("line-third series")).toBeVisible();
+  await cells.nth(3).hover({ position: { x: 220, y: 140 } });
+  await expect(page.getByText("bar-fourth series")).toBeVisible();
+
+  await page.evaluate(() => window.alienchartsMixedExample.reverse());
+  await expect(page.getByText("bar-fourth", { exact: true })).toBeVisible();
+  await assertGpuSurface();
+  await cells.nth(3).hover({ position: { x: 220, y: 140 } });
+  await expect(page.getByText("line-first series")).toBeVisible();
   expect(errors).toEqual([]);
 });

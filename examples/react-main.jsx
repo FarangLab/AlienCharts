@@ -1,7 +1,7 @@
 import React, { StrictMode, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "../dist/aliencharts.css";
-import { ChartGrid, createSeries } from "../src/react/index.js";
+import { ChartGrid, createLineSeries } from "../src/react/index.js";
 
 const chartConfigs = [
   { id: "train-loss", title: "train/loss", color: "#38bdf8", baseline: 10, period: 8 },
@@ -13,7 +13,7 @@ const chartConfigs = [
 const charts = chartConfigs.map((config) => ({
   id: config.id,
   title: config.title,
-  series: [createSeries({
+  series: [createLineSeries({
     id: `${config.id}-run`,
     name: "React run",
     color: config.color,
