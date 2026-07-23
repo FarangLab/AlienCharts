@@ -194,7 +194,7 @@ test("GPU bar charts render and interact in both orientations", async ({ page })
   await expect(page.locator("[data-crosshair-tooltip]")).toBeVisible();
   await expect(page.getByText("Vertical A")).toBeVisible();
   await expect(page.locator("[data-crosshair-tooltip]")).toContainText(
-    /STEP: (Gemini 3\.5|GPT-5\.6|Claude 4\.5|Llama 4|Mistral Large|Command R\+)/,
+    /MODEL: (Gemini 3\.5|GPT-5\.6|Claude 4\.5|Llama 4|Mistral Large|Command R\+)/,
   );
 
   await cells.nth(1).hover({ position: { x: 220, y: 150 } });

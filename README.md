@@ -161,7 +161,7 @@ chart must use the same orientation.
 ## Chart configuration
 
 Charts have the shape `{ id, title, series }` and may additionally define
-`pinned`, `categories`, and a fixed `{ min, max }` Y range.
+`pinned`, `categories`, `xAxisLabel`, and a fixed `{ min, max }` Y range.
 
 ### Categories
 
@@ -175,6 +175,7 @@ const chart = {
   id: "model-scores",
   title: "Model scores",
   categories: models,
+  xAxisLabel: "MODEL",
   series: [createBarSeries({
     id: "score",
     x: models.map((_, index) => index),
@@ -199,6 +200,7 @@ For sparse or non-indexed numeric X values, use
 | `showToolbar` | `true` | Line, Bar | Focused-chart toolbar. |
 | `showLatestValueLine` | `true` | Line | Latest value connector and label. |
 | `showTooltips` | `true` | Line, Bar | Crosshair and nearest-value tooltip. |
+| `xAxisLabel` | `STEP` | Line, Bar | Default tooltip label for the category/X value. |
 | `followLatest` | `false` | Line, Bar | Always follow appended values. |
 | `followVisibleLatest` | `true` | Line, Bar | Follow appends when the latest point was visible. |
 | `drawings` | `[]` | Line | Initial or replacement drawing state. |

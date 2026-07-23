@@ -78,6 +78,7 @@ export interface Chart {
   title: string;
   series: LineSeries[] | BarSeries[];
   categories?: Array<string | ChartCategory>;
+  xAxisLabel?: string;
   pinned?: boolean;
   yRange?: {
     min: number;

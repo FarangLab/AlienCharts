@@ -50,12 +50,14 @@ const charts = [
     id: "vertical-bars",
     title: "Vertical grouped bars",
     categories: categoryLabels,
+    xAxisLabel: "MODEL",
     series: [verticalA, verticalB],
   },
   {
     id: "horizontal-bars",
     title: "Horizontal grouped bars",
     categories: categoryLabels,
+    xAxisLabel: "MODEL",
     series: [horizontalA, horizontalB],
   },
 ];
