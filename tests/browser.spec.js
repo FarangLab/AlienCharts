@@ -239,6 +239,101 @@ test("crosshair points are clipped to their owning chart plot", async ({
   expect(intersection).toEqual({ ratio: 0, width: 0, height: 0 });
 });
 
+test("free Y panning unlocks after manual scaling and keeps its range stable", async ({
+  page,
+}) => {
+  await page.goto("/examples/vanilla.html");
+  const cell = page.locator("[data-chart-index]").first();
+  const box = await cell.boundingBox();
+  const center = { x: box.x + 260, y: box.y + 150 };
+
+  const initialState = await page.evaluate(() => ({
+    view: {
+      ...window.alienchartsExample.controller.viewStates.get("loss"),
+    },
+    offset: window.alienchartsExample.controller.yOffsets.get("loss"),
+  }));
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  await page.mouse.move(center.x - 80, center.y + 40);
+  await page.mouse.up();
+  const lockedPan = await page.evaluate(() => ({
+    view: {
+      ...window.alienchartsExample.controller.viewStates.get("loss"),
+    },
+    offset: window.alienchartsExample.controller.yOffsets.get("loss"),
+    manual: window.alienchartsExample.controller.yBaseRanges.has("loss"),
+  }));
+  expect(lockedPan.view.xMin).not.toBeCloseTo(initialState.view.xMin, 5);
+  expect(lockedPan.offset).toBe(initialState.offset);
+  expect(lockedPan.manual).toBe(false);
+
+  await page.evaluate(() =>
+    window.alienchartsExample.controller.resetChart("loss"));
+  await page.mouse.move(center.x, center.y);
+  await page.keyboard.down("Shift");
+  await page.mouse.wheel(0, -400);
+  await page.keyboard.up("Shift");
+  await expect.poll(() => page.evaluate(() =>
+    window.alienchartsExample.controller.yBaseRanges.has("loss"),
+  )).toBe(true);
+
+  const beforeHorizontalPan = await page.evaluate(() => {
+    const controller = window.alienchartsExample.controller;
+    const range = controller.getRange(controller.layouts[0]);
+    return {
+      minY: range.minY,
+      maxY: range.maxY,
+      offset: controller.yOffsets.get("loss"),
+      xMin: controller.viewStates.get("loss").xMin,
+    };
+  });
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  await page.mouse.move(center.x - 80, center.y);
+  await page.mouse.up();
+  const afterHorizontalPan = await page.evaluate(() => {
+    const controller = window.alienchartsExample.controller;
+    const range = controller.getRange(controller.layouts[0]);
+    return {
+      minY: range.minY,
+      maxY: range.maxY,
+      offset: controller.yOffsets.get("loss"),
+      xMin: controller.viewStates.get("loss").xMin,
+    };
+  });
+  expect(afterHorizontalPan.xMin).not.toBeCloseTo(
+    beforeHorizontalPan.xMin,
+    5,
+  );
+  expect(afterHorizontalPan.offset).toBe(beforeHorizontalPan.offset);
+  expect(afterHorizontalPan.minY).toBeCloseTo(beforeHorizontalPan.minY, 10);
+  expect(afterHorizontalPan.maxY).toBeCloseTo(beforeHorizontalPan.maxY, 10);
+
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  await page.mouse.move(center.x, center.y + 40);
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() =>
+    window.alienchartsExample.controller.yOffsets.get("loss"),
+  )).not.toBe(beforeHorizontalPan.offset);
+
+  await page.evaluate(() =>
+    window.alienchartsExample.controller.resetChart("loss"));
+  expect(await page.evaluate(() => ({
+    manual: window.alienchartsExample.controller.yBaseRanges.has("loss"),
+    offset: window.alienchartsExample.controller.yOffsets.get("loss"),
+  }))).toEqual({ manual: false, offset: 0 });
+
+  await page.mouse.move(box.x + box.width - 20, center.y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 20, center.y - 40);
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() =>
+    window.alienchartsExample.controller.yBaseRanges.has("loss"),
+  )).toBe(true);
+});
+
 test("React adapter survives Strict Mode and synchronizes updates", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

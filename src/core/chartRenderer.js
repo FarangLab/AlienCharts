@@ -306,20 +306,24 @@ const getScaledYRangeForLayout = ({
   descriptor,
   state,
   plot,
+  yBaseRangeRef,
   yScaleRef,
   yCenterOffsetRef,
-}) =>
-  applyYScale(
-    getYRange(
-      chart,
-      state.xMin,
-      state.xMax,
-      getCategoryPixelLength(chart, plot, descriptor),
-      descriptor,
-    ),
+}) => {
+  const automaticRange = getYRange(
+    chart,
+    state.xMin,
+    state.xMax,
+    getCategoryPixelLength(chart, plot, descriptor),
+    descriptor,
+  );
+  const lockedRange = yBaseRangeRef?.current.get(chart.id);
+  return applyYScale(
+    lockedRange ? { ...automaticRange, ...lockedRange } : automaticRange,
     yScaleRef.current.get(chart.id) ?? 1,
     yCenterOffsetRef.current.get(chart.id) ?? 0,
   );
+};
 
 const applyRectangleZoom = ({
   chart,
@@ -329,6 +333,7 @@ const applyRectangleZoom = ({
   end,
   initialVisiblePoints,
   viewStateRef,
+  yBaseRangeRef,
   yScaleRef,
   yCenterOffsetRef,
   yManualScaleRef,
@@ -348,6 +353,7 @@ const applyRectangleZoom = ({
     descriptor,
     state,
     plot,
+    yBaseRangeRef,
     yScaleRef,
     yCenterOffsetRef,
   });
@@ -405,6 +411,7 @@ const screenPointToDataPoint = ({
   plot,
   initialVisiblePoints,
   viewStateRef,
+  yBaseRangeRef,
   yScaleRef,
   yCenterOffsetRef,
 }) => {
@@ -418,6 +425,7 @@ const screenPointToDataPoint = ({
     descriptor,
     state,
     plot,
+    yBaseRangeRef,
     yScaleRef,
     yCenterOffsetRef,
   });
@@ -568,6 +576,7 @@ const drawChartLayouts = ({
   antialiasLines = false,
   layouts,
   viewStateRef,
+  yBaseRangeRef,
   yScaleRef,
   yCenterOffsetRef,
   initialVisiblePoints,
@@ -609,17 +618,15 @@ const drawChartLayouts = ({
       plot,
       descriptor,
     );
-    const yRange = applyYScale(
-      getYRange(
-        chart,
-        state.xMin,
-        state.xMax,
-        categoryPixelLength,
-        descriptor,
-      ),
-      yScaleRef.current.get(chart.id) ?? 1,
-      yCenterOffsetRef.current.get(chart.id) ?? 0,
-    );
+    const yRange = getScaledYRangeForLayout({
+      chart,
+      descriptor,
+      state,
+      plot,
+      yBaseRangeRef,
+      yScaleRef,
+      yCenterOffsetRef,
+    });
     gl.enable(gl.SCISSOR_TEST);
     gl.scissor(
       Math.floor(scaledPlot.x),

@@ -270,6 +270,7 @@ class ChartGridController {
     this.viewStates = new Map();
     this.yScales = new Map();
     this.yOffsets = new Map();
+    this.yBaseRanges = new Map();
     this.latestX = new Map();
     this.axisOverlays = {};
     this.layouts = [];
@@ -324,7 +325,7 @@ class ChartGridController {
 
   initializeChartState() {
     const ids = new Set(this.options.charts.map((chart) => chart.id));
-    [this.viewStates, this.yScales, this.yOffsets, this.latestX].forEach((map) => {
+    [this.viewStates, this.yScales, this.yOffsets, this.yBaseRanges, this.latestX].forEach((map) => {
       [...map.keys()].forEach((id) => { if (!ids.has(id)) map.delete(id); });
     });
     this.options.charts.forEach((chart) => {
@@ -535,6 +536,7 @@ class ChartGridController {
       antialiasLines: this.options.antialiasLines,
       layouts,
       viewStateRef: { current: this.viewStates },
+      yBaseRangeRef: { current: this.yBaseRanges },
       yScaleRef: { current: this.yScales },
       yCenterOffsetRef: { current: this.yOffsets },
       initialVisiblePoints: this.options.initialVisiblePoints,
@@ -738,21 +740,42 @@ class ChartGridController {
   }
 
   getRange(layout, state = this.viewStates.get(layout.chart.id)) {
-    return applyYScale(
-      getYRange(
+    const automaticRange = getYRange(
+      layout.chart,
+      state.xMin,
+      state.xMax,
+      getCategoryPixelLength(
         layout.chart,
-        state.xMin,
-        state.xMax,
-        getCategoryPixelLength(
-          layout.chart,
-          layout.plot,
-          layout.descriptor,
-        ),
+        layout.plot,
         layout.descriptor,
       ),
+      layout.descriptor,
+    );
+    const lockedRange = this.yBaseRanges.get(layout.chart.id);
+    return applyYScale(
+      lockedRange ? { ...automaticRange, ...lockedRange } : automaticRange,
       this.yScales.get(layout.chart.id),
       this.yOffsets.get(layout.chart.id),
     );
+  }
+
+  lockYRange(layout, state = this.viewStates.get(layout.chart.id)) {
+    if (this.yBaseRanges.has(layout.chart.id)) return;
+    const range = getYRange(
+      layout.chart,
+      state.xMin,
+      state.xMax,
+      getCategoryPixelLength(
+        layout.chart,
+        layout.plot,
+        layout.descriptor,
+      ),
+      layout.descriptor,
+    );
+    this.yBaseRanges.set(layout.chart.id, {
+      minY: range.minY,
+      maxY: range.maxY,
+    });
   }
 
   getTransform(layout, state, range) {
@@ -832,7 +855,7 @@ class ChartGridController {
     this.focusedChartId = layout.chart.id;
     const inPlot = point.x >= layout.plot.x && point.x <= layout.plot.x + layout.plot.width && point.y >= layout.plot.y && point.y <= layout.plot.y + layout.plot.height;
     if (inPlot && this.activeDrawingTool && !this.options.disableDrawings && layout.descriptor.capabilities.drawings) {
-      const dataPoint = screenPointToDataPoint({ point, chart: layout.chart, descriptor: layout.descriptor, plot: layout.plot, initialVisiblePoints: this.options.initialVisiblePoints, viewStateRef: { current: this.viewStates }, yScaleRef: { current: this.yScales }, yCenterOffsetRef: { current: this.yOffsets } });
+      const dataPoint = screenPointToDataPoint({ point, chart: layout.chart, descriptor: layout.descriptor, plot: layout.plot, initialVisiblePoints: this.options.initialVisiblePoints, viewStateRef: { current: this.viewStates }, yBaseRangeRef: { current: this.yBaseRanges }, yScaleRef: { current: this.yScales }, yCenterOffsetRef: { current: this.yOffsets } });
       if (["hline", "vline", "pin"].includes(this.activeDrawingTool)) {
         this.commitDrawing(layout.chart.id, this.activeDrawingTool, dataPoint, dataPoint);
       } else if (this.drawingSession?.chartId === layout.chart.id) {
@@ -857,7 +880,17 @@ class ChartGridController {
       } else {
         this.selectedDrawingId = null;
         this.emit("onSelectedDrawingIdChange", null);
-        this.drag = { type: "pan", layout, start: point, state: { ...this.viewStates.get(layout.chart.id) }, yOffset: this.yOffsets.get(layout.chart.id) || 0 };
+        const state = { ...this.viewStates.get(layout.chart.id) };
+        const range = this.getRange(layout, state);
+        this.drag = {
+          type: "pan",
+          layout,
+          start: point,
+          state,
+          yOffset: this.yOffsets.get(layout.chart.id) || 0,
+          canPanY: this.yBaseRanges.has(layout.chart.id),
+          valueSpan: range.maxY - range.minY,
+        };
       }
     } else if (
       layout.descriptor.orientation === "vertical" &&
@@ -894,7 +927,7 @@ class ChartGridController {
     const { layout, point } = context;
     if (this.drawingSession) {
       if (layout.chart.id !== this.drawingSession.chartId) return;
-      const end = screenPointToDataPoint({ point, chart: layout.chart, descriptor: layout.descriptor, plot: layout.plot, initialVisiblePoints: this.options.initialVisiblePoints, viewStateRef: { current: this.viewStates }, yScaleRef: { current: this.yScales }, yCenterOffsetRef: { current: this.yOffsets } });
+      const end = screenPointToDataPoint({ point, chart: layout.chart, descriptor: layout.descriptor, plot: layout.plot, initialVisiblePoints: this.options.initialVisiblePoints, viewStateRef: { current: this.viewStates }, yBaseRangeRef: { current: this.yBaseRanges }, yScaleRef: { current: this.yScales }, yCenterOffsetRef: { current: this.yOffsets } });
       this.draftDrawing = createDraftDrawing({ ...this.drawingSession, end });
       this.requestRender();
       return;
@@ -902,7 +935,7 @@ class ChartGridController {
     if (this.drag) {
       const { chart, descriptor, plot } = this.drag.layout;
       if (this.drag.type === "drawing-edit") {
-        const dataPoint = screenPointToDataPoint({ point, chart, descriptor, plot, initialVisiblePoints: this.options.initialVisiblePoints, viewStateRef: { current: this.viewStates }, yScaleRef: { current: this.yScales }, yCenterOffsetRef: { current: this.yOffsets } });
+        const dataPoint = screenPointToDataPoint({ point, chart, descriptor, plot, initialVisiblePoints: this.options.initialVisiblePoints, viewStateRef: { current: this.viewStates }, yBaseRangeRef: { current: this.yBaseRanges }, yScaleRef: { current: this.yScales }, yCenterOffsetRef: { current: this.yOffsets } });
         const next = updateDrawingById(this.drawings, this.drag.drawingId, (drawing) => {
           if (drawing.type === "hline") {
             const deltaX = (drawing.end?.x ?? drawing.start.x) - drawing.start.x;
@@ -920,22 +953,13 @@ class ChartGridController {
       }
       if (this.drag.type === "rectangle") this.rectangleZoomRect = { start: this.drag.start, end: point };
       if (this.drag.type === "pan") {
-        const span = this.drag.state.xMax - this.drag.state.xMin;
-        const baseRange = getYRange(
-          chart,
-          this.drag.state.xMin,
-          this.drag.state.xMax,
-          getCategoryPixelLength(chart, plot, descriptor),
-          descriptor,
-        );
-        const rangeSpan = (baseRange.maxY - baseRange.minY) * (this.yScales.get(chart.id) || 1);
         const transform = createCoordinateTransform({
           orientation: descriptor.orientation,
           categoryRange: {
             min: this.drag.state.xMin,
             max: this.drag.state.xMax,
           },
-          valueRange: { min: 0, max: rangeSpan },
+          valueRange: { min: 0, max: this.drag.valueSpan },
           plot,
         });
         const categoryDelta = transform.categoryDragDelta(
@@ -947,7 +971,9 @@ class ChartGridController {
           point,
         );
         this.viewStates.set(chart.id, { xMin: this.drag.state.xMin - categoryDelta, xMax: this.drag.state.xMax - categoryDelta });
-        this.yOffsets.set(chart.id, this.drag.yOffset + valueDelta);
+        if (this.drag.canPanY) {
+          this.yOffsets.set(chart.id, this.drag.yOffset + valueDelta);
+        }
       }
       if (this.drag.type === "y-scale") {
         const transform = createCoordinateTransform({
@@ -957,6 +983,7 @@ class ChartGridController {
           plot,
         });
         const delta = transform.valueScaleDelta(this.drag.start, point);
+        if (delta !== 0) this.lockYRange(this.drag.layout);
         this.yScales.set(
           chart.id,
           scaleValueRange(
@@ -1003,7 +1030,7 @@ class ChartGridController {
       const normalized = normalizeRect(this.rectangleZoomRect.start, this.rectangleZoomRect.end);
       if (normalized?.width >= 4 && normalized?.height >= 4) {
         const layout = this.drag.layout;
-        applyRectangleZoom({
+        const zoomed = applyRectangleZoom({
           chart: layout.chart,
           descriptor: layout.descriptor,
           plot: layout.plot,
@@ -1011,10 +1038,12 @@ class ChartGridController {
           end: this.rectangleZoomRect.end,
           initialVisiblePoints: this.options.initialVisiblePoints,
           viewStateRef: { current: this.viewStates },
+          yBaseRangeRef: { current: this.yBaseRanges },
           yScaleRef: { current: this.yScales },
           yCenterOffsetRef: { current: this.yOffsets },
           yManualScaleRef: { current: new Set() },
         });
+        if (zoomed) this.lockYRange(layout);
       }
       this.rectangleZoomChartId = null;
       this.rectangleZoomRect = null;
@@ -1036,6 +1065,7 @@ class ChartGridController {
     if (event.shiftKey) {
       const wheelDelta = event.deltaY || event.deltaX;
       const currentScale = this.yScales.get(layout.chart.id) || 1;
+      if (wheelDelta !== 0) this.lockYRange(layout);
       this.yScales.set(
         layout.chart.id,
         scaleValueRange(
@@ -1071,7 +1101,7 @@ class ChartGridController {
     event.preventDefault();
     const { layout, point } = context;
     const inPlot = point.x >= layout.plot.x && point.x <= layout.plot.x + layout.plot.width && point.y >= layout.plot.y && point.y <= layout.plot.y + layout.plot.height;
-    const data = inPlot ? screenPointToDataPoint({ point, chart: layout.chart, descriptor: layout.descriptor, plot: layout.plot, initialVisiblePoints: this.options.initialVisiblePoints, viewStateRef: { current: this.viewStates }, yScaleRef: { current: this.yScales }, yCenterOffsetRef: { current: this.yOffsets } }) : null;
+    const data = inPlot ? screenPointToDataPoint({ point, chart: layout.chart, descriptor: layout.descriptor, plot: layout.plot, initialVisiblePoints: this.options.initialVisiblePoints, viewStateRef: { current: this.viewStates }, yBaseRangeRef: { current: this.yBaseRanges }, yScaleRef: { current: this.yScales }, yCenterOffsetRef: { current: this.yOffsets } }) : null;
     this.options.onChartContextMenu({ chart: layout.chart, event, point: data });
   }
 
@@ -1200,6 +1230,7 @@ class ChartGridController {
     this.viewStates.set(chartId, getInitialView(chart, this.options.initialVisiblePoints));
     this.yScales.set(chartId, 1);
     this.yOffsets.set(chartId, 0);
+    this.yBaseRanges.delete(chartId);
     this.requestRender();
   }
 

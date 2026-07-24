@@ -123,17 +123,17 @@ See the [Vanilla Web example source](https://github.com/FarangLab/AlienCharts/bl
 ### CDN / script tag
 
 For browser use without npm or a bundler, load the stylesheet and standalone
-build from jsDelivr:
+build from jsDelivr. Replace `VERSION_TAG` with the latest published version:
 
 ```html
 <link
   rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/aliencharts@0.3.1/dist/aliencharts.css"
+  href="https://cdn.jsdelivr.net/npm/aliencharts@VERSION_TAG/dist/aliencharts.css"
 >
 
 <div id="charts" style="height: 100vh"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/aliencharts@0.3.1/dist/aliencharts.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aliencharts@VERSION_TAG/dist/aliencharts.global.min.js"></script>
 <script>
   const series = AlienCharts.createLineSeries({
     id: "run-1",
