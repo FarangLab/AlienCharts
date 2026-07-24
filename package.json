@@ -23,6 +23,8 @@
     "url": "https://github.com/FarangLab/aliencharts/issues"
   },
   "module": "./dist/index.js",
+  "jsdelivr": "./dist/aliencharts.global.min.js",
+  "style": "./dist/aliencharts.css",
   "types": "./index.d.ts",
   "exports": {
     ".": {

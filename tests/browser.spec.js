@@ -1,5 +1,42 @@
 import { expect, test } from "@playwright/test";
 
+test("standalone global build renders, updates, and cleans up", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/examples/standalone.html");
+
+  const exports = await page.evaluate(() => [
+    "BarSeries",
+    "LineSeries",
+    "createBarSeries",
+    "createChartGrid",
+    "createLineSeries",
+    "createMockCharts",
+    "createSeries",
+  ].filter((name) => typeof window.AlienCharts?.[name] !== "function"));
+  expect(exports).toEqual([]);
+  await expect(page.locator("[data-chart-index]")).toHaveCount(4);
+  await expect.poll(() => page.evaluate(() =>
+    getComputedStyle(
+      document.querySelector("[data-chart-index]").parentElement,
+    ).gridTemplateColumns.split(" ").length,
+  )).toBe(2);
+  await expect(page.locator("canvas")).toHaveAttribute("width", /[1-9]/);
+
+  await page.evaluate(() => window.alienchartsStandaloneExample.append());
+  await expect.poll(() => page.evaluate(() =>
+    window.alienchartsStandaloneExample.series.length,
+  )).toBe(101);
+
+  await page.evaluate(() =>
+    window.alienchartsStandaloneExample.controller.destroy(),
+  );
+  await expect(page.locator("#app > *")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test("vanilla renders, updates, interacts, and cleans up", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

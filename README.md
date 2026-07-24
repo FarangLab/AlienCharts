@@ -34,6 +34,45 @@ import "aliencharts/styles.css";
 
 Dark mode follows a `.dark` class on any ancestor element (e.g. `<html class="dark">`).
 
+## React
+
+If you use React in your application, import the React entry point:
+
+```jsx
+import { useRef, useState } from "react";
+import "aliencharts/styles.css";
+import { ChartGrid, createLineSeries } from "aliencharts/react";
+
+const series = createLineSeries({
+  id: "run-1",
+  x: [0, 1, 2, 3, 4],
+  y: [2.5, 1.9, 1.4, 1.1, 0.9],
+});
+
+export default function Dashboard() {
+  const gridRef = useRef(null);
+  const [dataRevision, setDataRevision] = useState(0);
+
+  const append = () => {
+    series.append([series.length], [Math.random()]);
+    setDataRevision((value) => value + 1);
+  };
+
+  return (
+    <div style={{ height: "100vh" }}>
+      <button onClick={append}>Append</button>
+      <ChartGrid
+        ref={gridRef}
+        charts={[{ id: "loss", title: "train/loss", series: [series] }]}
+        dataRevision={dataRevision}
+      />
+    </div>
+  );
+}
+```
+
+See the [React demo source](https://github.com/FarangLab/AlienCharts/blob/main/examples/DemoPage.jsx) for a larger controlled-state example.
+
 ## Vanilla Web
 
 ```html
@@ -81,44 +120,39 @@ grid.destroy();
 
 See the [Vanilla Web example source](https://github.com/FarangLab/AlienCharts/blob/main/examples/vanilla.js) for a more complete setup.
 
-## React
+### CDN / script tag
 
-If you use React in your application, import the React entry point:
+For browser use without npm or a bundler, load the stylesheet and standalone
+build from jsDelivr:
 
-```jsx
-import { useRef, useState } from "react";
-import "aliencharts/styles.css";
-import { ChartGrid, createLineSeries } from "aliencharts/react";
+```html
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/aliencharts@0.3.0/dist/aliencharts.css"
+>
 
-const series = createLineSeries({
-  id: "run-1",
-  x: [0, 1, 2, 3, 4],
-  y: [2.5, 1.9, 1.4, 1.1, 0.9],
-});
+<div id="charts" style="height: 100vh"></div>
 
-export default function Dashboard() {
-  const gridRef = useRef(null);
-  const [dataRevision, setDataRevision] = useState(0);
+<script src="https://cdn.jsdelivr.net/npm/aliencharts@0.3.0/dist/aliencharts.global.min.js"></script>
+<script>
+  const series = AlienCharts.createLineSeries({
+    id: "run-1",
+    x: [0, 1, 2, 3],
+    y: [2.5, 1.9, 1.4, 1.1],
+  });
 
-  const append = () => {
-    series.append([series.length], [Math.random()]);
-    setDataRevision((value) => value + 1);
-  };
-
-  return (
-    <div style={{ height: "100vh" }}>
-      <button onClick={append}>Append</button>
-      <ChartGrid
-        ref={gridRef}
-        charts={[{ id: "loss", title: "train/loss", series: [series] }]}
-        dataRevision={dataRevision}
-      />
-    </div>
+  const grid = AlienCharts.createChartGrid(
+    document.querySelector("#charts"),
+    {
+      charts: [{
+        id: "loss",
+        title: "train/loss",
+        series: [series],
+      }],
+    },
   );
-}
+</script>
 ```
-
-See the [React demo source](https://github.com/FarangLab/AlienCharts/blob/main/examples/DemoPage.jsx) for a larger controlled-state example.
 
 ## Data API
 
@@ -227,6 +261,7 @@ npm run examples
 Then open:
 
 - Vanilla Web: <http://127.0.0.1:4178/examples/vanilla.html>
+- Standalone script: <http://127.0.0.1:4178/examples/standalone.html>
 - React: <http://127.0.0.1:4178/examples/react.html>
 - Bar charts: <http://127.0.0.1:4178/examples/bars.html>
 

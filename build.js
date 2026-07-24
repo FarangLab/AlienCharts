@@ -22,4 +22,19 @@ await Promise.all([
     external: ["react"],
     jsx: "automatic",
   }),
+  build({
+    ...shared,
+    entryPoints: ["src/vanilla/index.js"],
+    outfile: "dist/aliencharts.global.js",
+    format: "iife",
+    globalName: "AlienCharts",
+  }),
+  build({
+    ...shared,
+    entryPoints: ["src/vanilla/index.js"],
+    outfile: "dist/aliencharts.global.min.js",
+    format: "iife",
+    globalName: "AlienCharts",
+    minify: true,
+  }),
 ]);
