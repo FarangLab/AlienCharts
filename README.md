@@ -7,6 +7,8 @@ GPU-rendered chart grid for multi-metric dashboards — such as monitoring AI tr
 
 By rendering every series with WebGL, AlienCharts keeps dense chart grids smooth where SVG/Canvas libraries stall.
 
+[Open the live interactive demo](https://faranglab.github.io/AlienCharts/)
+
 > **Note:** AlienCharts currently supports **line charts** and **bar charts**. Other chart types may be added in the future.
 
 ![AlienCharts chart grid example](./assets/chartgrid.png)
@@ -71,7 +73,9 @@ export default function Dashboard() {
 }
 ```
 
-See the [React demo source](https://github.com/FarangLab/AlienCharts/blob/main/examples/DemoPage.jsx) for a larger controlled-state example.
+See the [live interactive demo](https://faranglab.github.io/AlienCharts/) or
+its [React source](https://github.com/FarangLab/AlienCharts/blob/main/examples/DemoPage.jsx)
+for a larger controlled-state example.
 
 ## Vanilla Web
 

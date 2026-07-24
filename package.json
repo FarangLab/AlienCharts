@@ -54,6 +54,9 @@
   ],
   "scripts": {
     "build": "node build.js && tailwindcss -i src/styles.css -o dist/aliencharts.css --minify",
+    "build:demo": "npm run build && vite build --config vite.demo.config.js",
+    "demo": "npm run build && vite --config vite.demo.config.js",
+    "preview:demo": "vite preview --config vite.demo.config.js",
     "examples": "vite --host 127.0.0.1 --port 4178",
     "test": "npm run build && playwright test",
     "prepublishOnly": "npm run build"

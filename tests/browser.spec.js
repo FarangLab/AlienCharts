@@ -37,6 +37,38 @@ test("standalone global build renders, updates, and cleans up", async ({
   expect(errors).toEqual([]);
 });
 
+test("GitHub Pages demo renders and appends live data", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/demo/index.html");
+
+  await expect(page.locator("[data-chart-index]")).toHaveCount(20);
+  await expect(
+    page.locator("[data-demo-toolbar]").getByRole("spinbutton"),
+  ).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "View on GitHub" })).toBeVisible();
+  await expect.poll(() =>
+    page.locator("[data-demo-status]").innerText(),
+  ).toContain("+250 live");
+
+  await page.getByRole("button", { name: "Light theme" }).click();
+  await expect(page.locator("html")).not.toHaveClass(/dark/);
+
+  await page.locator("[data-chart-index]").first().click({
+    position: { x: 150, y: 120 },
+  });
+  await page.getByRole("button", { name: "Maximize chart" }).click();
+  await expect(page.locator("[data-aliencharts-fullscreen]")).toBeVisible();
+  await expect.poll(() => page.evaluate(() =>
+    Boolean(
+      document.elementFromPoint(20, 20)
+        ?.closest("[data-aliencharts-fullscreen]"),
+    ),
+  )).toBeTruthy();
+  await page.getByRole("button", { name: "Exit fullscreen" }).click();
+  expect(errors).toEqual([]);
+});
+
 test("vanilla renders, updates, interacts, and cleans up", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

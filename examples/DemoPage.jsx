@@ -29,12 +29,22 @@ const appendPoints = (charts, pointsPerSeries) => {
   });
 };
 
-function DemoPage({ Button, Input, Switch }) {
-  const [chartCount, setChartCount] = useState(50);
-  const [pointCount, setPointCount] = useState(1000000);
-  const [seriesPerChart, setSeriesPerChart] = useState(1);
-  const [columns, setColumns] = useState(3);
-  const [liveAppend, setLiveAppend] = useState(false);
+function DemoPage({
+  Button,
+  Input,
+  Switch,
+  initialChartCount = 30,
+  initialPointCount = 500000,
+  initialSeriesPerChart = 1,
+  initialColumns = 3,
+  initialLiveAppend = false,
+  showDatasetControls = true,
+}) {
+  const [chartCount, setChartCount] = useState(initialChartCount);
+  const [pointCount, setPointCount] = useState(initialPointCount);
+  const [seriesPerChart, setSeriesPerChart] = useState(initialSeriesPerChart);
+  const [columns, setColumns] = useState(initialColumns);
+  const [liveAppend, setLiveAppend] = useState(initialLiveAppend);
   const [mockRevision, setMockRevision] = useState(0);
   const [dataRevision, setDataRevision] = useState(0);
   const [appendedPoints, setAppendedPoints] = useState(0);
@@ -45,9 +55,9 @@ function DemoPage({ Button, Input, Switch }) {
   const [movingAverageByChart, setMovingAverageByChart] = useState({});
   const [charts, setCharts] = useState(() => {
     const generated = createMockCharts({
-      chartCount: 30,
-      pointCount: 500000,
-      seriesPerChart: 1,
+      chartCount: initialChartCount,
+      pointCount: initialPointCount,
+      seriesPerChart: initialSeriesPerChart,
     });
     return generated;
   });
@@ -169,48 +179,62 @@ function DemoPage({ Button, Input, Switch }) {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border/70 px-3 py-2 text-sm">
+    <div
+      className="flex h-full min-h-0 flex-col bg-background"
+      data-demo-page
+    >
+      <div
+        className="flex flex-wrap items-center gap-3 border-b border-border/70 px-3 py-2 text-sm"
+        data-demo-toolbar
+      >
         <div className="font-semibold">AlienCharts Demo</div>
-        <label className="flex items-center gap-1.5 text-muted-foreground">
-          Charts
-          <Input
-            className="h-7 w-20"
-            min={1}
-            max={100}
-            type="number"
-            value={chartCount}
-            onChange={(event) =>
-              setChartCount(Math.max(1, Number(event.target.value) || 1))
-            }
-          />
-        </label>
-        <label className="flex items-center gap-1.5 text-muted-foreground">
-          Points
-          <Input
-            className="h-7 w-28"
-            min={1000}
-            step={50000}
-            type="number"
-            value={pointCount}
-            onChange={(event) =>
-              setPointCount(Math.max(1000, Number(event.target.value) || 1000))
-            }
-          />
-        </label>
-        <label className="flex items-center gap-1.5 text-muted-foreground">
-          Series
-          <Input
-            className="h-7 w-16"
-            min={1}
-            max={6}
-            type="number"
-            value={seriesPerChart}
-            onChange={(event) =>
-              setSeriesPerChart(Math.max(1, Number(event.target.value) || 1))
-            }
-          />
-        </label>
+        {showDatasetControls ? (
+          <>
+            <label className="flex items-center gap-1.5 text-muted-foreground">
+              Charts
+              <Input
+                className="h-7 w-20"
+                min={1}
+                max={100}
+                type="number"
+                value={chartCount}
+                onChange={(event) =>
+                  setChartCount(Math.max(1, Number(event.target.value) || 1))
+                }
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-muted-foreground">
+              Points
+              <Input
+                className="h-7 w-28"
+                min={1000}
+                step={50000}
+                type="number"
+                value={pointCount}
+                onChange={(event) =>
+                  setPointCount(
+                    Math.max(1000, Number(event.target.value) || 1000),
+                  )
+                }
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-muted-foreground">
+              Series
+              <Input
+                className="h-7 w-16"
+                min={1}
+                max={6}
+                type="number"
+                value={seriesPerChart}
+                onChange={(event) =>
+                  setSeriesPerChart(
+                    Math.max(1, Number(event.target.value) || 1),
+                  )
+                }
+              />
+            </label>
+          </>
+        ) : null}
         <label className="flex items-center gap-1.5 text-muted-foreground">
           Columns
           <Input
@@ -237,7 +261,10 @@ function DemoPage({ Button, Input, Switch }) {
         <Button size="sm" variant="outline" onClick={jumpLatest}>
           Jump latest
         </Button>
-        <div className="ml-auto text-xs text-muted-foreground">
+        <div
+          className="ml-auto text-xs text-muted-foreground"
+          data-demo-status
+        >
           {chartCount} charts / {seriesPerChart} series /{" "}
           {(pointCount + appendedPoints).toLocaleString()} points
           {appendedPoints > 0
