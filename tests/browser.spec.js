@@ -182,6 +182,63 @@ test("zoomed drawings are clipped to their owning chart plot", async ({ page }) 
   expect(errors).toEqual([]);
 });
 
+test("crosshair points are clipped to their owning chart plot", async ({
+  page,
+}) => {
+  await page.goto("/examples/vanilla.html");
+  await expect(page.locator("canvas")).toHaveAttribute("width", /[1-9]/);
+
+  await page.evaluate(() => {
+    const { controller } = window.alienchartsExample;
+    const layout = controller.layouts[0];
+    const plot = { ...layout.plot };
+    controller.crosshair = {
+      chartId: layout.chart.id,
+      x: plot.x + plot.width / 2,
+      y: plot.y + plot.height / 2,
+      xValue: 100,
+      categoryLabel: "100",
+      points: [{
+        id: "offscreen-series",
+        name: "Offscreen series",
+        color: "#38bdf8",
+        x: plot.x + plot.width / 2,
+        y: plot.y + plot.height + 40,
+        xValue: 100,
+        yValue: -100,
+      }],
+      plot,
+      tooltipX: plot.x + 12,
+      tooltipY: plot.y + 12,
+    };
+    controller.renderOverlays();
+  });
+
+  const layer = page.locator("[data-crosshair-points]");
+  await expect(layer).toHaveCSS("overflow", "hidden");
+  const geometry = await page.locator("[data-crosshair-point]").first()
+    .evaluate((point) => {
+      return {
+        pointY: Number.parseFloat(point.style.top),
+        layerHeight: Number.parseFloat(point.parentElement.style.height),
+      };
+    });
+  expect(geometry.pointY).toBeGreaterThan(geometry.layerHeight);
+  const intersection = await page.locator("[data-crosshair-point]").first()
+    .evaluate((point) => new Promise((resolve) => {
+      const observer = new IntersectionObserver(([entry]) => {
+        observer.disconnect();
+        resolve({
+          ratio: entry.intersectionRatio,
+          width: entry.intersectionRect.width,
+          height: entry.intersectionRect.height,
+        });
+      });
+      observer.observe(point);
+    }));
+  expect(intersection).toEqual({ ratio: 0, width: 0, height: 0 });
+});
+
 test("React adapter survives Strict Mode and synchronizes updates", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

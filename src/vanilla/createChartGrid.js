@@ -699,8 +699,11 @@ class ChartGridController {
       (item) => item.id === crosshair.chartId,
     );
     const xAxisLabel = chart?.xAxisLabel ?? this.options.xAxisLabel;
+    const pointLayer = `<div data-crosshair-points class="pointer-events-none absolute z-30 overflow-hidden" style="left:${crosshair.plot.x}px;top:${crosshair.plot.y}px;width:${crosshair.plot.width}px;height:${crosshair.plot.height}px">
+      ${crosshair.points.map((point) => `<div data-crosshair-point class="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background" style="left:${point.x - crosshair.plot.x}px;top:${point.y - crosshair.plot.y}px;background:${point.color}"></div>`).join("")}
+    </div>`;
     return `<div class="pointer-events-none absolute z-20 border-l border-foreground/40" style="left:${crosshair.x}px;top:0;height:100%"></div><div class="pointer-events-none absolute z-20 border-t border-foreground/40" style="top:${crosshair.y}px;left:0;width:100%"></div>
-      ${crosshair.points.map((point) => `<div class="pointer-events-none absolute z-30 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background" style="left:${point.x}px;top:${point.y}px;background:${point.color}"></div>`).join("")}
+      ${pointLayer}
       <div data-crosshair-tooltip class="pointer-events-none absolute z-30 w-[220px] rounded-sm border border-border/70 bg-popover/80 px-2 py-1.5 text-xs text-popover-foreground shadow-sm backdrop-blur-sm" style="left:${crosshair.tooltipX}px;top:${crosshair.tooltipY}px"><div class="mb-1 font-medium">${escapeHtml(xAxisLabel)}: ${escapeHtml(crosshair.categoryLabel ?? this.options.formatXValue(crosshair.xValue))}</div>${crosshair.points.map((point) => `<div class="grid grid-cols-[auto_1fr] gap-x-2"><span class="mt-1 size-2 rounded-full" style="background:${point.color}"></span><div class="min-w-0"><div class="truncate text-muted-foreground">${escapeHtml(point.name)}</div><div class="tabular-nums">${escapeHtml(this.options.formatYValue(point.yValue))}</div></div></div>`).join("")}</div>`;
   }
 
@@ -1120,6 +1123,7 @@ class ChartGridController {
       xValue: nearest.xValue,
       categoryLabel: getCategoryLabel(layout.chart, nearest.xValue),
       points,
+      plot: { ...layout.plot },
       tooltipX: point.x + 232 > layout.rect.x + layout.rect.width ? point.x - 232 : point.x + 12,
       tooltipY: clamp(point.y + 12, layout.plot.y, layout.rect.y + layout.rect.height - 96),
     };
